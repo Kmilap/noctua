@@ -1,18 +1,32 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './hooks/useAuth'
 import Layout from './layouts/Layout'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
+import ServicesPage from './pages/ServicesPage'
 
-function Dashboard() {
-  return <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />
 }
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Layout />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/dashboard" />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="services" element={<h1 className="text-white">Servicios</h1>} />
+          <Route path="dashboard" element={<h1 className="text-2xl font-bold text-white">Dashboard</h1>} />
+          <Route path="services" element={<ServicesPage />} />
           <Route path="alert-rules" element={<h1 className="text-white">Reglas de alerta</h1>} />
           <Route path="incidents" element={<h1 className="text-white">Incidentes</h1>} />
           <Route path="channels" element={<h1 className="text-white">Canales</h1>} />
