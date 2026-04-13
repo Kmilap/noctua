@@ -16,9 +16,9 @@ class Metric extends Model
     ];
 
     protected $casts = [
-        'metadata' => 'array',
+        'metadata'    => 'array',
         'recorded_at' => 'datetime',
-        'value' => 'decimal:4',
+        'value'       => 'decimal:4',
     ];
 
     public function service()
