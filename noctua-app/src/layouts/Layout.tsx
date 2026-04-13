@@ -1,17 +1,21 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { usePermissions } from '../hooks/usePermissions'
 
-const navItems = [
-  { label: 'Dashboard', path: '/dashboard' },
-  { label: 'Servicios', path: '/services' },
-  { label: 'Reglas de alerta', path: '/alert-rules' },
-  { label: 'Incidentes', path: '/incidents' },
-  { label: 'Canales', path: '/channels' },
-  { label: 'Equipo', path: '/team' },
+const allNavItems = [
+  { label: 'Dashboard',        path: '/dashboard',   page: 'dashboard'   },
+  { label: 'Servicios',        path: '/services',    page: 'services'    },
+  { label: 'Reglas de alerta', path: '/alert-rules', page: 'alert-rules' },
+  { label: 'Incidentes',       path: '/incidents',   page: 'incidents'   },
+  { label: 'Canales',          path: '/channels',    page: 'channels'    },
+  { label: 'Equipo',           path: '/team',        page: 'team'        },
 ]
 
 export default function Layout() {
   const navigate = useNavigate()
+  const { can } = usePermissions()
+
+  const navItems = allNavItems.filter(item => can(item.page))
 
   const handleLogout = async () => {
     const token = localStorage.getItem('token')
@@ -19,6 +23,7 @@ export default function Layout() {
       headers: { Authorization: `Bearer ${token}` }
     })
     localStorage.removeItem('token')
+    localStorage.removeItem('user')
     navigate('/login')
   }
 
