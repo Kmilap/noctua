@@ -4,6 +4,7 @@ import Layout from './layouts/Layout'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ServicesPage from './pages/ServicesPage'
+import DashboardPage from './pages/DashboardPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -25,7 +26,7 @@ function App() {
           }
         >
           <Route index element={<Navigate to="/dashboard" />} />
-          <Route path="dashboard" element={<h1 className="text-2xl font-bold text-white">Dashboard</h1>} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="services" element={<ServicesPage />} />
           <Route path="alert-rules" element={<h1 className="text-white">Reglas de alerta</h1>} />
           <Route path="incidents" element={<h1 className="text-white">Incidentes</h1>} />
