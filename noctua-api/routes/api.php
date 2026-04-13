@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HeartbeatController;
 use App\Http\Controllers\MetricController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ServiceStatusController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -22,14 +23,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
+    Route::get('/services/status', [ServiceStatusController::class, 'index']);
+
     Route::apiResource('services', ServiceController::class);
 
     Route::get('/team', [TeamController::class, 'show']);
     Route::put('/team', [TeamController::class, 'update']);
 });
 
-// Rutas protegidas por API key (ingesta)
+// Rutas protegidas por API key (ingesta) con rate limiting
 Route::middleware([\App\Http\Middleware\ApiKeyAuth::class])->group(function () {
-    Route::post('/metrics', [MetricController::class, 'store']);
-    Route::post('/heartbeat', [HeartbeatController::class, 'store']);
+    Route::post('/metrics', [MetricController::class, 'store'])->middleware('throttle:60,1');
+    Route::post('/heartbeat', [HeartbeatController::class, 'store'])->middleware('throttle:60,1');
 });

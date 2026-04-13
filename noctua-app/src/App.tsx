@@ -5,8 +5,9 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ServicesPage from './pages/ServicesPage'
 import DashboardPage from './pages/DashboardPage'
+import ProtectedRoute from './components/ProtectedRoute'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function AuthRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />
 }
@@ -15,23 +16,23 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login"    element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route
           path="/"
           element={
-            <ProtectedRoute>
+            <AuthRoute>
               <Layout />
-            </ProtectedRoute>
+            </AuthRoute>
           }
         >
           <Route index element={<Navigate to="/dashboard" />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="services" element={<ServicesPage />} />
-          <Route path="alert-rules" element={<h1 className="text-white">Reglas de alerta</h1>} />
-          <Route path="incidents" element={<h1 className="text-white">Incidentes</h1>} />
-          <Route path="channels" element={<h1 className="text-white">Canales</h1>} />
-          <Route path="team" element={<h1 className="text-white">Equipo</h1>} />
+          <Route path="dashboard"   element={<ProtectedRoute page="dashboard"><DashboardPage /></ProtectedRoute>} />
+          <Route path="services"    element={<ProtectedRoute page="services"><ServicesPage /></ProtectedRoute>} />
+          <Route path="alert-rules" element={<ProtectedRoute page="alert-rules"><h1 className="text-white">Reglas de alerta</h1></ProtectedRoute>} />
+          <Route path="incidents"   element={<ProtectedRoute page="incidents"><h1 className="text-white">Incidentes</h1></ProtectedRoute>} />
+          <Route path="channels"    element={<ProtectedRoute page="channels"><h1 className="text-white">Canales</h1></ProtectedRoute>} />
+          <Route path="team"        element={<ProtectedRoute page="team"><h1 className="text-white">Equipo</h1></ProtectedRoute>} />
         </Route>
       </Routes>
     </BrowserRouter>
