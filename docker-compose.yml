@@ -1,14 +1,15 @@
+
 services:
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ./noctua-api
+      dockerfile: ../Dockerfile
     container_name: noctua-app
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
-      - .:/var/www/html
+      - ./noctua-api:/var/www/html
     depends_on:
       db:
         condition: service_healthy
@@ -67,13 +68,13 @@ services:
 
   horizon:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ./noctua-api
+      dockerfile: ../Dockerfile
     container_name: noctua-horizon
     restart: unless-stopped
     command: php artisan horizon
     volumes:
-      - .:/var/www/html
+      - ./noctua-api:/var/www/html
     depends_on:
       db:
         condition: service_healthy
