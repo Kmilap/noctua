@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\AlertRuleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HeartbeatController;
+use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\MetricController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceStatusController;
@@ -14,21 +16,27 @@ require __DIR__.'/auth.php';
 
 // Rutas protegidas por Sanctum
 Route::middleware(['auth:sanctum'])->group(function () {
-
     Route::get('/user', function (Request $request) {
         return $request->user()->load('roles');
     });
-
     Route::post('/logout', [\App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy']);
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
-
     Route::get('/services/status', [ServiceStatusController::class, 'index']);
-
     Route::apiResource('services', ServiceController::class);
 
     Route::get('/team', [TeamController::class, 'show']);
     Route::put('/team', [TeamController::class, 'update']);
+
+    // Sprint 3.1 — Alert Rules
+    Route::patch('alert-rules/{alert_rule}/toggle-active', [AlertRuleController::class, 'toggleActive']);
+    Route::apiResource('alert-rules', AlertRuleController::class);
+
+    // Sprint 3.1 — Incidents
+    Route::post('incidents/{incident}/acknowledge', [IncidentController::class, 'acknowledge']);
+    Route::post('incidents/{incident}/resolve', [IncidentController::class, 'resolve']);
+    Route::apiResource('incidents', IncidentController::class)
+        ->only(['index', 'show']);
 });
 
 // Rutas protegidas por API key (ingesta) con rate limiting

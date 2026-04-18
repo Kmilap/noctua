@@ -5,7 +5,7 @@ namespace App\Policies;
 use App\Models\AlertIncident;
 use App\Models\User;
 
-class IncidentPolicy
+class AlertIncidentPolicy
 {
     /**
      * Helper: el team_id viene a través de alertRule → service.
