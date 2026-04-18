@@ -6,6 +6,7 @@ import sys
 # Configuración
 API_URL = "http://localhost:8000/api"
 API_KEY = "oqpBGIIr6GPj0weIfuPHP7ws32nrWm0DkOBWDOqIAB2ttxPRfqTisL1Ia5fxsEJa"
+
 headers = {
     "Authorization": f"Bearer {API_KEY}",
     "Content-Type": "application/json",
@@ -17,8 +18,9 @@ print("Presioná Ctrl+C para detener.\n")
 
 while True:
     try:
-        # Métrica de response time
-        response_time = random.randint(50, 3000)
+        # Métrica de response time — rango ajustado para disparar violaciones
+        # contra una regla típica (> 2000). ~75% estarán en zona violatoria.
+        response_time = random.randint(1500, 3500)
         metric_payload = {
             "metric_name": "response_time",
             "value": response_time,
@@ -37,7 +39,6 @@ while True:
         print(f"[heartbeat] status_code={status_code} → {r.status_code}")
 
         time.sleep(30)
-
     except KeyboardInterrupt:
         print("\nSimulador detenido.")
         sys.exit(0)
