@@ -30,5 +30,10 @@ class ProcessMetricJob implements ShouldQueue
 
         Service::where('id', $this->serviceId)
             ->update(['last_seen_at' => now()]);
+
+        // Dispara la evaluación de reglas en background.
+        // IncidentManager (invocado desde el Job) previene duplicados,
+        // así que es seguro llamarlo cada vez que llega una métrica.
+        EvaluateAlertRulesJob::dispatch($this->serviceId);
     }
 }
