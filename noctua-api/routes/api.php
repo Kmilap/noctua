@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HeartbeatController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\MetricController;
+use App\Http\Controllers\NotificationChannelController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceStatusController;
 use App\Http\Controllers\TeamController;
@@ -19,9 +20,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user()->load('roles');
     });
+
     Route::post('/logout', [\App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy']);
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
+
     Route::get('/services/status', [ServiceStatusController::class, 'index']);
     Route::apiResource('services', ServiceController::class);
 
@@ -37,6 +40,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('incidents/{incident}/resolve', [IncidentController::class, 'resolve']);
     Route::apiResource('incidents', IncidentController::class)
         ->only(['index', 'show']);
+
+    // Sprint 3.2 — Notification Channels
+    Route::patch('notification-channels/{notification_channel}/toggle-active', [NotificationChannelController::class, 'toggleActive']);
+    Route::post('notification-channels/{notification_channel}/test', [NotificationChannelController::class, 'test']);
+    Route::apiResource('notification-channels', NotificationChannelController::class);
 });
 
 // Rutas protegidas por API key (ingesta) con rate limiting
