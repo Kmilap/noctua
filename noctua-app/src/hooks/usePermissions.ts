@@ -11,7 +11,10 @@ const permissions: Record<Role, string[]> = {
 export function usePermissions() {
   const { user } = useAuth()
 
-  const role: Role = (user?.roles?.[0]?.name as Role) ?? 'viewer'
+  const role: Role =
+    (user?.role as Role) ??
+    (user?.roles?.[0]?.name as Role) ??
+    'viewer'
 
   const allowedPages = permissions[role] ?? permissions.viewer
 
