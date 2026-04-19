@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendNotificationJob;
 use App\Models\AlertIncident;
 use App\Models\AlertRule;
 use Illuminate\Support\Facades\DB;
@@ -30,11 +31,20 @@ class IncidentManager
                 return $existing;
             }
 
-            return AlertIncident::create([
+            $incident = AlertIncident::create([
                 'alert_rule_id' => $rule->id,
                 'status'        => AlertIncident::STATUS_TRIGGERED,
                 'triggered_at'  => now(),
             ]);
+
+            // Despacha el envío de notificaciones SOLO cuando el incidente
+            // es recién creado. Si se reutiliza un incidente abierto (arriba),
+            // no se notifica otra vez — evita spam mientras el problema persiste.
+            // afterCommit() garantiza que el job solo se despache si la transacción
+            // commitea exitosamente; si hay rollback, no se envía el email.
+            SendNotificationJob::dispatch($incident)->afterCommit();
+
+            return $incident;
         });
     }
 
