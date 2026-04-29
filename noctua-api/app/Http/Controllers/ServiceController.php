@@ -17,24 +17,23 @@ class ServiceController extends Controller
         return response()->json($services);
     }
 
-    public function store(StoreServiceRequest $request): JsonResponse
+ public function store(StoreServiceRequest $request): JsonResponse
     {
-        $plainKey = Str::random(64);
+        $this->authorize('create', Service::class);
 
+        $plainKey = Str::random(64);
         $service = $request->user()->team->services()->create([
             'name' => $request->name,
             'url' => $request->url,
             'api_key_hash' => bcrypt($plainKey),
             'status' => 'unknown',
         ]);
-
         return response()->json([
             'service' => $service,
             'api_key' => $plainKey,
             'message' => 'Guardá esta API key, no se mostrará de nuevo.',
         ], 201);
     }
-
     public function show(Request $request, Service $service): JsonResponse
     {
         $this->authorize('view', $service);
