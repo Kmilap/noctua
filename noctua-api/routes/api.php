@@ -11,10 +11,12 @@ use App\Http\Controllers\ServiceStatusController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SelfCheckController;
 
 // Rutas de autenticación
 require __DIR__.'/auth.php';
-
+// Health check público
+Route::get('/self-check', [SelfCheckController::class, 'index'])->middleware('throttle:30,1');
 // Rutas protegidas por Sanctum
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
