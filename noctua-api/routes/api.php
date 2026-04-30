@@ -11,10 +11,12 @@ use App\Http\Controllers\ServiceStatusController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SelfCheckController;
 
 // Rutas de autenticación
 require __DIR__.'/auth.php';
-
+// Health check público
+Route::get('/self-check', [SelfCheckController::class, 'index'])->middleware('throttle:30,1');
 // Rutas protegidas por Sanctum
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
@@ -27,6 +29,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/services/status', [ServiceStatusController::class, 'index']);
     Route::apiResource('services', ServiceController::class);
+    Route::get('services/{service}/metrics/history', [MetricController::class, 'history']);
 
     Route::get('/team', [TeamController::class, 'show']);
     Route::put('/team', [TeamController::class, 'update']);
@@ -45,6 +48,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('notification-channels/{notification_channel}/toggle-active', [NotificationChannelController::class, 'toggleActive']);
     Route::post('notification-channels/{notification_channel}/test', [NotificationChannelController::class, 'test']);
     Route::apiResource('notification-channels', NotificationChannelController::class);
+    
 });
 
 // Rutas protegidas por API key (ingesta) con rate limiting
