@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class NotificationChannelController extends Controller
@@ -95,21 +96,21 @@ class NotificationChannelController extends Controller
     {
         $this->authorize('test', $notificationChannel);
 
+        $sampleIncident = AlertIncident::query()
+            ->whereHas('alertRule.service', function ($q) use ($notificationChannel) {
+                $q->where('team_id', $notificationChannel->team_id);
+            })
+            ->with(['alertRule.service'])
+            ->latest('id')
+            ->first();
+
+        if ($sampleIncident === null) {
+            return response()->json([
+                'message' => 'No hay incidentes en el sistema para usar como muestra. Crea una regla y dispara un incidente primero.',
+            ], 422);
+        }
+
         try {
-            $sampleIncident = AlertIncident::query()
-                ->whereHas('alertRule.service', function ($q) use ($notificationChannel) {
-                    $q->where('team_id', $notificationChannel->team_id);
-                })
-                ->with(['alertRule.service'])
-                ->latest('id')
-                ->first();
-
-            if ($sampleIncident === null) {
-                return response()->json([
-                    'message' => 'No hay incidentes en el sistema para usar como muestra. Crea una regla y dispara un incidente primero.',
-                ], 422);
-            }
-
             match ($notificationChannel->type) {
                 'email' => $this->testEmail($notificationChannel, $sampleIncident),
                 'slack' => $this->testSlack($notificationChannel, $sampleIncident),
@@ -120,11 +121,20 @@ class NotificationChannelController extends Controller
                 'message' => 'Notificación de prueba enviada exitosamente.',
                 'channel' => $notificationChannel->only(['id', 'type']),
             ]);
-        } catch (Throwable $e) {
+        } catch (\RuntimeException $e) {
+            // Error de configuración del canal o tipo no soportado: 422.
             return response()->json([
-                'message' => 'Fallo al enviar notificación de prueba.',
+                'message' => 'No se pudo enviar la notificación de prueba.',
                 'error'   => $e->getMessage(),
-            ], 500);
+            ], 422);
+        } catch (Throwable $e) {
+            // Error real del servidor: loguear y devolver 500.
+            Log::error('Channel test failed', [
+                'channel_id' => $notificationChannel->id,
+                'channel_type' => $notificationChannel->type,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
         }
     }
 
