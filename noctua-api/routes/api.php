@@ -27,6 +27,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/services/status', [ServiceStatusController::class, 'index']);
     Route::apiResource('services', ServiceController::class);
+    Route::get('services/{service}/metrics/history', [MetricController::class, 'history']);
 
     Route::get('/team', [TeamController::class, 'show']);
     Route::put('/team', [TeamController::class, 'update']);
@@ -45,6 +46,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('notification-channels/{notification_channel}/toggle-active', [NotificationChannelController::class, 'toggleActive']);
     Route::post('notification-channels/{notification_channel}/test', [NotificationChannelController::class, 'test']);
     Route::apiResource('notification-channels', NotificationChannelController::class);
+    
 });
 
 // Rutas protegidas por API key (ingesta) con rate limiting
