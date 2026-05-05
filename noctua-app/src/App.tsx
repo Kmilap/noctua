@@ -8,7 +8,11 @@ import DashboardPage from './pages/DashboardPage'
 import AlertRulesPage from './pages/AlertRulesPage'
 import IncidentsPage from './pages/IncidentsPage'
 import ProfilePage from './pages/ProfilePage'
+import ChannelsPage from './pages/ChannelsPage'
 import ProtectedRoute from './components/ProtectedRoute'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import TeamPage from './pages/TeamPage'
+import AcceptInvitationPage from './pages/AcceptInvitationPage'
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -19,8 +23,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login"    element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login"             element={<LoginPage />} />
+        <Route path="/register"          element={<RegisterPage />} />
+        <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
+        <Route path="/forgot-password"   element={<ForgotPasswordPage />} />
         <Route
           path="/"
           element={
@@ -34,8 +40,8 @@ function App() {
           <Route path="services"    element={<ProtectedRoute page="services"><ServicesPage /></ProtectedRoute>} />
           <Route path="alert-rules" element={<ProtectedRoute page="alert-rules"><AlertRulesPage /></ProtectedRoute>} />
           <Route path="incidents"   element={<ProtectedRoute page="incidents"><IncidentsPage /></ProtectedRoute>} />
-          <Route path="channels"    element={<ProtectedRoute page="channels"><h1 className="text-white">Canales</h1></ProtectedRoute>} />
-          <Route path="team"        element={<ProtectedRoute page="team"><h1 className="text-white">Equipo</h1></ProtectedRoute>} />
+          <Route path="channels"    element={<ProtectedRoute page="channels"><ChannelsPage /></ProtectedRoute>} />
+          <Route path="team"        element={<ProtectedRoute page="team"><TeamPage /></ProtectedRoute>} />
           <Route path="profile"     element={<ProfilePage />} />
         </Route>
       </Routes>

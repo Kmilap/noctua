@@ -139,12 +139,12 @@ export default function LoginPage() {
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[color:var(--color-noctua-amber)]" />
               </div>
-              <button
-                type="button"
+              <Link
+                to="/forgot-password"
                 className="text-xs text-[color:var(--color-noctua-amber)] hover:underline text-left mt-1 w-fit"
               >
                 ¿Olvidaste tu contraseña?
-              </button>
+              </Link>
             </div>
 
             <button

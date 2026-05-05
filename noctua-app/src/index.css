@@ -239,3 +239,13 @@ input:-webkit-autofill:active {
   caret-color: white !important;
   transition: background-color 5000s ease-in-out 0s;
 }
+
+/* Ocultar el ojo nativo del browser en inputs de contraseña */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-contacts-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
