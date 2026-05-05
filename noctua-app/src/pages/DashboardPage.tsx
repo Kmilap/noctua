@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
+import MetricsChart from '../components/MetricsChart'
 
 type DashboardStats = {
   active_services: number
@@ -177,14 +178,14 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Rows */}
+      {/* Rows */}
           {loading ? (
             <div className="px-6 py-8 text-center text-gray-500 text-sm">Cargando...</div>
           ) : services.length === 0 ? (
             <div className="px-6 py-8 text-center text-gray-500 text-sm">No hay servicios registrados.</div>
           ) : (
             services.map((svc, i) => {
-              const cfg = statusConfig[svc.status] ?? statusConfig.unknown
+              const cfg = statusConfig[svc.status] ?? statusConfig.unknown;
               return (
                 <div
                   key={svc.id}
@@ -228,11 +229,30 @@ export default function DashboardPage() {
                     {svc.last_seen_at ? formatRelativeTime(svc.last_seen_at) : '—'}
                   </span>
                 </div>
-              )
+              );
             })
           )}
         </div>
       </div>
+
+      {/* Gráfico de métricas */}
+      {services.length > 0 && (
+        <div className="mt-8"> {/* Añadí un margen superior (mt-8) para separarlo de la tabla */}
+          <h2 className="text-base font-semibold text-gray-300 mb-3">Métricas históricas</h2>
+          <div className="grid grid-cols-2 gap-4">
+            {services.filter(s => s.status !== 'unknown').map(svc => (
+              <MetricsChart
+                key={svc.id}
+                serviceId={svc.id}
+                serviceName={svc.name}
+                metric="response_time"
+                range="24h"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
-  )
+  );
 }
