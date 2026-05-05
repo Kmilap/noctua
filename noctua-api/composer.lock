@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "698b0b20c261772a187403da8419cbfb",
+    "content-hash": "d7fc6a5a534cc15fafbca0e57d8c33c9",
     "packages": [
         {
             "name": "brick/math",
@@ -3498,6 +3498,73 @@
             "time": "2025-12-14T04:43:48+00:00"
         },
         {
+            "name": "spatie/docker",
+            "version": "1.13.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/docker.git",
+                "reference": "ab266bc8d8dbd0a0157edebe235bcc8a7bef01c5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/spatie/docker/zipball/ab266bc8d8dbd0a0157edebe235bcc8a7bef01c5",
+                "reference": "ab266bc8d8dbd0a0157edebe235bcc8a7bef01c5",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.4|^8.0",
+                "spatie/macroable": "^1.0|^2.0",
+                "symfony/process": "^5.3|^6.0|^7.0|^8.0"
+            },
+            "require-dev": {
+                "pestphp/pest": "^1.22",
+                "phpunit/phpunit": "^9.4",
+                "spatie/ssh": "^1.7.0",
+                "symfony/var-dumper": "^5.3|^6.0|^7.0|^8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Spatie\\Docker\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Ruben Van Assche",
+                    "email": "ruben@spatie.be",
+                    "homepage": "https://spatie.be",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Freek Van der Herten",
+                    "email": "freek@spatie.be",
+                    "homepage": "https://spatie.be",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Run a docker container in your PHPUnit tests",
+            "homepage": "https://github.com/spatie/docker",
+            "keywords": [
+                "docker",
+                "spatie"
+            ],
+            "support": {
+                "issues": "https://github.com/spatie/docker/issues",
+                "source": "https://github.com/spatie/docker/tree/1.13.1"
+            },
+            "funding": [
+                {
+                    "url": "https://spatie.be/open-source/support-us",
+                    "type": "custom"
+                }
+            ],
+            "time": "2025-11-25T21:12:08+00:00"
+        },
+        {
             "name": "spatie/laravel-package-tools",
             "version": "1.93.0",
             "source": {
@@ -3644,6 +3711,57 @@
                 }
             ],
             "time": "2026-03-17T22:57:08+00:00"
+        },
+        {
+            "name": "spatie/macroable",
+            "version": "2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/spatie/macroable.git",
+                "reference": "2967f69810ba4df158391665c0850010b9d1507c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/spatie/macroable/zipball/2967f69810ba4df158391665c0850010b9d1507c",
+                "reference": "2967f69810ba4df158391665c0850010b9d1507c",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.3"
+            },
+            "require-dev": {
+                "pestphp/pest": "^4",
+                "phpunit/phpunit": "^12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Spatie\\Macroable\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Freek Van der Herten",
+                    "email": "freek@spatie.be",
+                    "homepage": "https://spatie.be",
+                    "role": "Developer"
+                }
+            ],
+            "description": "A trait to dynamically add methods to a class",
+            "homepage": "https://github.com/spatie/macroable",
+            "keywords": [
+                "macroable",
+                "spatie"
+            ],
+            "support": {
+                "issues": "https://github.com/spatie/macroable/issues",
+                "source": "https://github.com/spatie/macroable/tree/2.1.0"
+            },
+            "time": "2026-01-30T17:13:34+00:00"
         },
         {
             "name": "symfony/clock",
