@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage'
 import AlertRulesPage from './pages/AlertRulesPage'
 import IncidentsPage from './pages/IncidentsPage'
 import ProfilePage from './pages/ProfilePage'
+import ChannelsPage from './pages/ChannelsPage'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
@@ -34,7 +35,7 @@ function App() {
           <Route path="services"    element={<ProtectedRoute page="services"><ServicesPage /></ProtectedRoute>} />
           <Route path="alert-rules" element={<ProtectedRoute page="alert-rules"><AlertRulesPage /></ProtectedRoute>} />
           <Route path="incidents"   element={<ProtectedRoute page="incidents"><IncidentsPage /></ProtectedRoute>} />
-          <Route path="channels"    element={<ProtectedRoute page="channels"><h1 className="text-white">Canales</h1></ProtectedRoute>} />
+          <Route path="channels"    element={<ProtectedRoute page="channels"><ChannelsPage /></ProtectedRoute>} />
           <Route path="team"        element={<ProtectedRoute page="team"><h1 className="text-white">Equipo</h1></ProtectedRoute>} />
           <Route path="profile"     element={<ProfilePage />} />
         </Route>
