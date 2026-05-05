@@ -178,7 +178,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
-      {/* Rows */}
+    {/* Rows */}
           {loading ? (
             <div className="px-6 py-8 text-center text-gray-500 text-sm">Cargando...</div>
           ) : services.length === 0 ? (
