@@ -55,6 +55,7 @@ class ContainerManager
         // 3. Construir el comando docker run vía spatie/docker
         $container = DockerContainer::create($template->image)
             ->name($containerName)
+            ->doNotCleanUpAfterExit()
             ->mapPort($service->host_port, $template->internal_port);
 
         // Inyectar variables de entorno
@@ -145,28 +146,138 @@ class ContainerManager
         return $service->fresh();
     }
 
+   /**
+     * Arranca un contenedor existente que está detenido.
+     */
     public function start(Service $service): Service
     {
-        // TODO Etapa 4
-        throw new RuntimeException('start() — pending (etapa 4)');
+        $this->assertContainerExists($service);
+
+        $containerName = $this->buildContainerName($service);
+
+        $this->runDockerCommand(['docker', 'start', $containerName]);
+
+        $service->update([
+            'container_status' => 'starting',
+        ]);
+
+        Log::info("ContainerManager: contenedor arrancado", [
+            'service_id' => $service->id,
+            'container_name' => $containerName,
+        ]);
+
+        return $service->fresh();
     }
 
+    /**
+     * Detiene un contenedor en ejecución sin destruirlo.
+     * El contenedor y sus datos se conservan; se puede arrancar de nuevo después.
+     */
     public function stop(Service $service): Service
     {
-        // TODO Etapa 4
-        throw new RuntimeException('stop() — pending (etapa 4)');
+        $this->assertContainerExists($service);
+
+        $containerName = $this->buildContainerName($service);
+
+        $this->runDockerCommand(['docker', 'stop', $containerName]);
+
+        $service->update([
+            'container_status' => 'stopped',
+        ]);
+
+        Log::info("ContainerManager: contenedor detenido", [
+            'service_id' => $service->id,
+            'container_name' => $containerName,
+        ]);
+
+        return $service->fresh();
     }
 
+    /**
+     * Reinicia un contenedor en ejecución.
+     * Equivalente a stop() + start() pero atómico desde Docker.
+     */
     public function restart(Service $service): Service
     {
-        // TODO Etapa 4
-        throw new RuntimeException('restart() — pending (etapa 4)');
+        $this->assertContainerExists($service);
+
+        $containerName = $this->buildContainerName($service);
+
+        $this->runDockerCommand(['docker', 'restart', $containerName]);
+
+        $service->update([
+            'container_status' => 'starting',
+        ]);
+
+        Log::info("ContainerManager: contenedor reiniciado", [
+            'service_id' => $service->id,
+            'container_name' => $containerName,
+        ]);
+
+        return $service->fresh();
     }
 
+    /**
+     * Consulta el estado real del contenedor en Docker.
+     * Devuelve uno de: 'running', 'stopped', 'starting', 'error', 'removing', null.
+     *
+     * Útil para sincronización: el estado en BD puede estar desactualizado
+     * si alguien manipuló el contenedor por fuera de Noctua. Esta función
+     * retorna lo que Docker reporta ahora mismo.
+     *
+     * Retorna null si el contenedor no existe en Docker.
+     */
     public function getStatus(Service $service): ?string
     {
-        // TODO Etapa 4
-        throw new RuntimeException('getStatus() — pending (etapa 4)');
+        if ($service->container_id === null) {
+            return null;
+        }
+
+        $containerName = $this->buildContainerName($service);
+
+        // docker inspect devuelve JSON con el estado del contenedor.
+        // Si el contenedor no existe, falla con exit code != 0.
+        $process = new Process([
+            'docker', 'inspect',
+            '--format', '{{.State.Status}}',
+            $containerName,
+        ]);
+        $process->setTimeout(10);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            // El contenedor no existe en Docker (fue eliminado por fuera)
+            return null;
+        }
+
+        $dockerStatus = trim($process->getOutput());
+
+        // Mapeo del estado de Docker al enum de container_status_enum
+        return match ($dockerStatus) {
+            'running' => 'running',
+            'created', 'restarting' => 'starting',
+            'exited', 'paused' => 'stopped',
+            'dead' => 'error',
+            'removing' => 'removing',
+            default => 'error',
+        };
+    }
+
+    // -----------------------------------------------------------------
+    // Validación adicional
+    // -----------------------------------------------------------------
+
+    /**
+     * Confirma que el servicio tiene un contenedor Docker asociado.
+     * Las operaciones start/stop/restart requieren un contenedor existente.
+     */
+    protected function assertContainerExists(Service $service): void
+    {
+        if ($service->container_id === null) {
+            throw ValidationException::withMessages([
+                'container_id' => 'Este servicio no tiene contenedor activo. Crea uno primero con create().',
+            ]);
+        }
     }
 
     // -----------------------------------------------------------------
