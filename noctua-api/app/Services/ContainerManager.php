@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
 use Spatie\Docker\DockerContainer;
+use Spatie\Docker\DockerContainerInstance;
 use Symfony\Component\Process\Process;
 
 /**
@@ -37,43 +38,29 @@ class ContainerManager
         $this->assertGlobalLimitNotReached();
 
         $template = $service->template;
-        $containerName = $this->buildContainerName($service);
 
         // 1. Crear volúmenes si la plantilla es persistente
-        $volumeNames = [];
+        $volumeMounts = [];
         if ($template->persistent && !empty($template->volumes_config)) {
             foreach ($template->volumes_config as $volume) {
                 $volumeName = $this->buildVolumeName($service, $volume['name_suffix']);
                 $this->createDockerVolume($volumeName);
-                $volumeNames[$volumeName] = $volume['mount_path'];
+                $volumeMounts[$volumeName] = $volume['mount_path'];
             }
         }
 
         // 2. Construir variables de entorno (template + Noctua)
         $env = $this->buildEnvironmentVariables($service, $template);
 
-        // 3. Construir el comando docker run vía spatie/docker
-        $container = DockerContainer::create($template->image)
-            ->name($containerName)
-            ->doNotCleanUpAfterExit()
-            ->mapPort($service->host_port, $template->internal_port);
-
-        // Inyectar variables de entorno
-        foreach ($env as $key => $value) {
-            $container = $container->setEnvironmentVariable($key, (string) $value);
-        }
-
-        // Montar volúmenes si los hay
-        foreach ($volumeNames as $volumeName => $mountPath) {
-            $container = $container->mapVolume($volumeName, $mountPath);
-        }
+        // 3. Construir el objeto DockerContainer (sin arrancarlo todavía)
+        $container = $this->buildDockerContainer($service, $template, $volumeMounts, $env);
 
         // 4. Levantar el contenedor
         try {
-            $instance = $container->start();
+            $instance = $this->runDockerContainer($container);
         } catch (\Throwable $e) {
             // Si falló, limpiamos los volúmenes que ya creamos
-            foreach (array_keys($volumeNames) as $volumeName) {
+            foreach (array_keys($volumeMounts) as $volumeName) {
                 $this->removeDockerVolume($volumeName);
             }
             throw new RuntimeException(
@@ -146,7 +133,7 @@ class ContainerManager
         return $service->fresh();
     }
 
-   /**
+    /**
      * Arranca un contenedor existente que está detenido.
      */
     public function start(Service $service): Service
@@ -219,13 +206,16 @@ class ContainerManager
 
     /**
      * Consulta el estado real del contenedor en Docker.
-     * Devuelve uno de: 'running', 'stopped', 'starting', 'error', 'removing', null.
+     *
+     * Devuelve uno de: 'running', 'stopped', 'starting', 'error', 'removing', 'missing', null.
+     *
+     * - 'missing' significa que el contenedor existió en BD (container_id no es null)
+     *   pero ya no existe en Docker (fue eliminado por fuera de Noctua).
+     * - null significa que el servicio nunca tuvo contenedor (container_id es null).
      *
      * Útil para sincronización: el estado en BD puede estar desactualizado
      * si alguien manipuló el contenedor por fuera de Noctua. Esta función
      * retorna lo que Docker reporta ahora mismo.
-     *
-     * Retorna null si el contenedor no existe en Docker.
      */
     public function getStatus(Service $service): ?string
     {
@@ -246,8 +236,9 @@ class ContainerManager
         $process->run();
 
         if (!$process->isSuccessful()) {
-            // El contenedor no existe en Docker (fue eliminado por fuera)
-            return null;
+            // El contenedor no existe en Docker (fue eliminado por fuera).
+            // Distinto de null: aquí hubo un container_id pero ya no responde.
+            return 'missing';
         }
 
         $dockerStatus = trim($process->getOutput());
@@ -351,15 +342,58 @@ class ContainerManager
     {
         $env = $template->default_env ?? [];
 
-        // Inyectar variables de Noctua para que el contenedor reporte heartbeats
-        // (Camino A: monitoreo unificado vía API key)
+        // Variables de Noctua para que el contenedor pueda hablar con la API.
         $env['NOCTUA_API_URL'] = config('noctua.internal_api_url');
 
-        // La API key del servicio: si no tiene, no la inyectamos (responsabilidad del controller generarla)
-        // Aquí solo asumimos que viene poblada cuando llega aquí.
-        // El controller que cree el servicio debe haber poblado api_key_hash antes.
+        // TODO S6: inyectar NOCTUA_API_KEY desde $service->api_key_hash.
+        // No se hace en S5 porque las plantillas no consumen la API aún.
+        // Entra en S6 junto con CalculateAggregatedMetricsJob, cuando Laravel
+        // y Node+Express empiecen a reportar métricas custom autenticadas.
 
         return $env;
+    }
+
+    // -----------------------------------------------------------------
+    // Construcción del DockerContainer (extraído para testabilidad)
+    // -----------------------------------------------------------------
+
+    /**
+     * Construye el objeto DockerContainer aplicando nombre, política de cleanup,
+     * mapeo de puerto, variables de entorno y volúmenes. NO arranca el contenedor.
+     *
+     * @param array<string,string> $volumeMounts Mapa volumeName => mountPath
+     * @param array<string,scalar> $env          Variables de entorno key => value
+     */
+    protected function buildDockerContainer(
+        Service $service,
+        ServiceTemplate $template,
+        array $volumeMounts,
+        array $env
+    ): DockerContainer {
+        $container = DockerContainer::create($template->image)
+            ->name($this->buildContainerName($service))
+            ->doNotCleanUpAfterExit()
+            ->mapPort($service->host_port, $template->internal_port);
+
+        foreach ($env as $key => $value) {
+            $container = $container->setEnvironmentVariable($key, (string) $value);
+        }
+
+        foreach ($volumeMounts as $volumeName => $mountPath) {
+            $container = $container->setVolume($volumeName, $mountPath);
+        }
+
+        return $container;
+    }
+
+    /**
+     * Arranca el DockerContainer y devuelve la instancia. Aislado en su propio
+     * método para que los tests puedan sobreescribirlo y devolver un fake sin
+     * tocar Docker real.
+     */
+    protected function runDockerContainer(DockerContainer $container): DockerContainerInstance
+    {
+        return $container->start();
     }
 
     // -----------------------------------------------------------------
@@ -387,8 +421,9 @@ class ContainerManager
     /**
      * Ejecuta un comando docker via Symfony Process.
      *
-     * @param array $command Argumentos del comando (no se pasan a un shell, evita inyección)
-     * @param bool $allowFailure Si true, no lanza excepción cuando el comando falla
+     * @param array $command       Argumentos del comando (no se pasan a un shell, evita inyección)
+     * @param bool  $allowFailure  Si true, no lanza excepción cuando el comando falla.
+     *                             En ese caso se loguea un warning para dejar rastro.
      */
     protected function runDockerCommand(array $command, bool $allowFailure = false): string
     {
@@ -396,11 +431,22 @@ class ContainerManager
         $process->setTimeout(60);
         $process->run();
 
-        if (!$process->isSuccessful() && !$allowFailure) {
-            throw new RuntimeException(
-                "Comando docker falló: " . implode(' ', $command) . "\n" .
-                "stderr: " . $process->getErrorOutput()
-            );
+        if (!$process->isSuccessful()) {
+            if (!$allowFailure) {
+                throw new RuntimeException(
+                    "Comando docker falló: " . implode(' ', $command) . "\n" .
+                    "stderr: " . $process->getErrorOutput()
+                );
+            }
+
+            // Idempotencia tolerada: dejamos rastro para no perder visibilidad
+            // cuando algo desaparece silenciosamente (contenedor borrado por fuera,
+            // volumen ya inexistente, etc.)
+            Log::warning("ContainerManager: comando docker falló pero allowFailure=true", [
+                'command' => implode(' ', $command),
+                'exit_code' => $process->getExitCode(),
+                'stderr' => trim($process->getErrorOutput()),
+            ]);
         }
 
         return trim($process->getOutput());
