@@ -53,6 +53,10 @@ class SmokeTemplate extends Command
                 'write_marker' => fn($container, $marker) => $this->execInContainer($container, ['sh', '-c', "echo '{$marker}' > /var/www/html/wp-content/.smoke_marker"]),
                 'read_marker' => fn($container) => trim($this->execInContainer($container, ['cat', '/var/www/html/wp-content/.smoke_marker'])),
             ],
+            'laravel' => [
+                'default_port' => 18083,
+                'wait_ready' => fn($container) => $this->waitHttp($container, 8000, '/', 60),
+            ],
             'postgresql' => [
                 'default_port' => 15432,
                 'wait_ready' => function ($container, $pgUser) {

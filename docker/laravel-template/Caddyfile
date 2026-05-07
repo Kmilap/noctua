@@ -1,0 +1,29 @@
+{
+    auto_https off
+
+    log {
+        output stdout
+        format console
+    }
+}
+
+{$SERVER_NAME} {
+    root * /app/public
+    encode zstd br gzip
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+
+    @static {
+        path *.ico *.css *.js *.gif *.jpg *.jpeg *.png *.svg *.woff *.woff2
+    }
+    handle @static {
+        file_server
+    }
+
+    php_server
+}
