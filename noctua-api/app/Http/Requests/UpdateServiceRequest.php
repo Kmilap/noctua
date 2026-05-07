@@ -11,6 +11,13 @@ class UpdateServiceRequest extends FormRequest
         return true;
     }
 
+    /**
+     * Solo se actualizan campos de metadata.
+     *
+     * template_id y host_port NO son editables después de creado el servicio:
+     * cambiarlos requeriría destruir y recrear el contenedor, lo cual es una
+     * operación distinta y se hace via destroy + create separados, no via PUT.
+     */
     public function rules(): array
     {
         return [
