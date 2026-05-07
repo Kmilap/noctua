@@ -47,6 +47,12 @@ class SmokeTemplate extends Command
                 'write_marker' => fn($container, $marker) => $this->execInContainer($container, ['sh', '-c', "echo '{$marker}' > /home/node/.n8n/.smoke_marker"]),
                 'read_marker' => fn($container) => trim($this->execInContainer($container, ['cat', '/home/node/.n8n/.smoke_marker'])),
             ],
+            'wordpress' => [
+                'default_port' => 18082,
+                'wait_ready' => fn($container) => $this->waitHttp($container, 80, '/wp-admin/install.php', 120),
+                'write_marker' => fn($container, $marker) => $this->execInContainer($container, ['sh', '-c', "echo '{$marker}' > /var/www/html/wp-content/.smoke_marker"]),
+                'read_marker' => fn($container) => trim($this->execInContainer($container, ['cat', '/var/www/html/wp-content/.smoke_marker'])),
+            ],
             'postgresql' => [
                 'default_port' => 15432,
                 'wait_ready' => function ($container, $pgUser) {
