@@ -17,9 +17,13 @@ class ApiKeyAuth
             return response()->json(['error' => 'API key requerida.'], 401);
         }
 
-        $service = Service::all()->first(function ($service) use ($key) {
-            return password_verify($key, $service->api_key_hash);
-        });
+        // Lookup directo por hash sha256: O(1) con índice en BD,
+        // vs el O(n) anterior que iteraba todos los services con password_verify.
+        $hash = hash('sha256', $key);
+
+        $service = Service::query()
+            ->where('api_key_hash', $hash)
+            ->first();
 
         if (!$service) {
             return response()->json(['error' => 'API key inválida.'], 401);
