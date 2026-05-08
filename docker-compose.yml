@@ -114,6 +114,33 @@ services:
       - QUEUE_CONNECTION=redis
     networks:
       - noctua-network
+  scheduler:
+    build:
+      context: ./noctua-api
+      dockerfile: ../Dockerfile
+    container_name: noctua-scheduler
+    restart: unless-stopped
+    command: php artisan schedule:work
+    volumes:
+      - ./noctua-api:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=noctua
+      - DB_USERNAME=noctua
+      - DB_PASSWORD=noctua_secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QUEUE_CONNECTION=redis
+    networks:
+      - noctua-network
 
 volumes:
   noctua-db-data:
