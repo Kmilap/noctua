@@ -1,4 +1,3 @@
-
 services:
   app:
     build:
@@ -67,6 +66,26 @@ services:
     networks:
       - noctua-network
 
+  mysql:
+    image: mysql:8
+    container_name: noctua-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: noctua_mysql_root_secret
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress_secret
+    volumes:
+      - noctua-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pnoctua_mysql_root_secret"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - noctua-network
+
   horizon:
     build:
       context: ./noctua-api
@@ -95,9 +114,37 @@ services:
       - QUEUE_CONNECTION=redis
     networks:
       - noctua-network
+  scheduler:
+    build:
+      context: ./noctua-api
+      dockerfile: ../Dockerfile
+    container_name: noctua-scheduler
+    restart: unless-stopped
+    command: php artisan schedule:work
+    volumes:
+      - ./noctua-api:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=noctua
+      - DB_USERNAME=noctua
+      - DB_PASSWORD=noctua_secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QUEUE_CONNECTION=redis
+    networks:
+      - noctua-network
 
 volumes:
   noctua-db-data:
+  noctua-mysql-data:
 
 networks:
   noctua-network:

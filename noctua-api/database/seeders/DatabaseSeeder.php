@@ -23,7 +23,6 @@ class DatabaseSeeder extends Seeder
             'acknowledge_incidents',
             'resolve_incidents',
         ];
-
         foreach ($permissions as $permission) {
             Permission::firstOrCreate(['name' => $permission]);
         }
@@ -78,5 +77,8 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $viewerUser->assignRole('viewer');
+
+        // Catálogo de plantillas de provisioning (Sprint 5)
+        $this->call(ServiceTemplateSeeder::class);
     }
 }

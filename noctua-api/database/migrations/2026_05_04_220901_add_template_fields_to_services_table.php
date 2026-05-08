@@ -12,26 +12,44 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Crear el tipo enum en Postgres antes de usarlo en la columna.
-        DB::statement("CREATE TYPE container_status_enum AS ENUM ('stopped', 'starting', 'running', 'error', 'removing')");
+        // Crear el tipo enum solo si no existe (idempotente).
+        // CREATE TYPE no soporta IF NOT EXISTS en Postgres,
+        // por eso usamos un DO block que captura la excepción.
+        DB::statement("
+            DO \$\$ BEGIN
+                CREATE TYPE container_status_enum AS ENUM ('stopped', 'starting', 'running', 'error', 'removing');
+            EXCEPTION
+                WHEN duplicate_object THEN null;
+            END \$\$;
+        ");
 
         Schema::table('services', function (Blueprint $table) {
             // Hacer 'url' nullable: los servicios con plantilla la generan en runtime
             $table->string('url')->nullable()->change();
 
             // Campos nuevos para servicios con plantilla
-            $table->foreignId('template_id')
-                ->nullable()
-                ->after('team_id')
-                ->constrained('service_templates')
-                ->nullOnDelete();
+            if (!Schema::hasColumn('services', 'template_id')) {
+                $table->foreignId('template_id')
+                    ->nullable()
+                    ->after('team_id')
+                    ->constrained('service_templates')
+                    ->nullOnDelete();
+            }
 
-            $table->string('container_id')->nullable()->after('template_id');
+            if (!Schema::hasColumn('services', 'container_id')) {
+                $table->string('container_id')->nullable()->after('template_id');
+            }
+        });
 
-            // Usar el tipo enum nativo de Postgres
+        // container_status va aparte porque usa el tipo enum nativo de Postgres
+        if (!Schema::hasColumn('services', 'container_status')) {
             DB::statement("ALTER TABLE services ADD COLUMN container_status container_status_enum NULL");
+        }
 
-            $table->unsignedSmallInteger('host_port')->nullable()->after('container_status');
+        Schema::table('services', function (Blueprint $table) {
+            if (!Schema::hasColumn('services', 'host_port')) {
+                $table->unsignedSmallInteger('host_port')->nullable()->after('container_status');
+            }
         });
     }
 
@@ -41,7 +59,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('services', function (Blueprint $table) {
-            $table->dropForeign(['template_id']);
+            if (Schema::hasColumn('services', 'template_id')) {
+                $table->dropForeign(['template_id']);
+            }
             $table->dropColumn(['template_id', 'container_id', 'host_port']);
         });
 

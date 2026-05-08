@@ -8,6 +8,7 @@ use App\Http\Controllers\MetricController;
 use App\Http\Controllers\NotificationChannelController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceStatusController;
+use App\Http\Controllers\ServiceTemplateController;
 use App\Http\Controllers\TeamController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,8 +29,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
     Route::get('/services/status', [ServiceStatusController::class, 'index']);
+
+    Route::post('services/{service}/start', [ServiceController::class, 'start']);
+    Route::post('services/{service}/stop', [ServiceController::class, 'stop']);
+    Route::post('services/{service}/restart', [ServiceController::class, 'restart']);
+
     Route::apiResource('services', ServiceController::class);
     Route::get('services/{service}/metrics/history', [MetricController::class, 'history']);
+    // Sprint 2 — Service Templates (catálogo)
+    Route::get('/service-templates', [ServiceTemplateController::class, 'index']);
 
     Route::get('/team', [TeamController::class, 'show']);
     Route::put('/team', [TeamController::class, 'update']);
@@ -48,7 +56,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('notification-channels/{notification_channel}/toggle-active', [NotificationChannelController::class, 'toggleActive']);
     Route::post('notification-channels/{notification_channel}/test', [NotificationChannelController::class, 'test']);
     Route::apiResource('notification-channels', NotificationChannelController::class);
-    
+
 });
 
 // Rutas protegidas por API key (ingesta) con rate limiting

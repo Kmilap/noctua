@@ -30,7 +30,11 @@ class ServicePolicy
 
     public function create(User $user): bool
     {
-        // Solo admin y operator pueden crear services.
+        // Admin y operator pueden crear servicios (con o sin plantilla).
+        // Decisión de diseño D5: la creación con plantilla consume recursos
+        // del VPS, pero confiamos en operator para esa responsabilidad.
+        // El límite global de contenedores (config noctua.max_containers_total)
+        // protege el VPS independientemente del rol.
         return $user->hasAnyRole(['admin', 'operator']);
     }
 
@@ -42,7 +46,40 @@ class ServicePolicy
 
     public function delete(User $user, Service $service): bool
     {
+        // Solo admin puede eliminar servicios. Eliminar incluye destruir
+        // contenedor y volúmenes asociados: operación irreversible que
+        // requiere autoridad superior.
         return $this->belongsToSameTeam($user, $service)
             && $user->hasRole('admin');
+    }
+
+    /**
+     * Iniciar un contenedor detenido.
+     * Admin y operator pueden gestionar el ciclo de vida runtime.
+     */
+    public function start(User $user, Service $service): bool
+    {
+        return $this->belongsToSameTeam($user, $service)
+            && $user->hasAnyRole(['admin', 'operator']);
+    }
+
+    /**
+     * Detener un contenedor en ejecución.
+     * Admin y operator pueden gestionar el ciclo de vida runtime.
+     */
+    public function stop(User $user, Service $service): bool
+    {
+        return $this->belongsToSameTeam($user, $service)
+            && $user->hasAnyRole(['admin', 'operator']);
+    }
+
+    /**
+     * Reiniciar un contenedor.
+     * Admin y operator pueden gestionar el ciclo de vida runtime.
+     */
+    public function restart(User $user, Service $service): bool
+    {
+        return $this->belongsToSameTeam($user, $service)
+            && $user->hasAnyRole(['admin', 'operator']);
     }
 }
