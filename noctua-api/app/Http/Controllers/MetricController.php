@@ -1,6 +1,8 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreMetricRequest;
 use App\Jobs\ProcessMetricJob;
 use App\Models\Service;
 use Illuminate\Http\JsonResponse;
@@ -9,20 +11,18 @@ use Illuminate\Support\Facades\DB;
 
 class MetricController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(StoreMetricRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'metric_name' => 'required|string|max:100',
-            'value'       => 'required|numeric',
-            'metadata'    => 'nullable|array',
-        ]);
+        $data = $request->validated();
         $service = $request->get('authenticated_service');
+
         ProcessMetricJob::dispatch(
             $service->id,
             $data['metric_name'],
             $data['value'],
             $data['metadata'] ?? null,
         );
+
         return response()->json(['message' => 'Métrica recibida y en cola.'], 202);
     }
 
