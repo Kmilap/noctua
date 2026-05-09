@@ -46,8 +46,10 @@ class MetricsAggregatorTest extends TestCase
             'status'       => 'active',
         ]);
 
-        // Bucket de prueba: minuto reproducible (ayer mismo a las 12:00 UTC)
-        $this->bucket = Carbon::create(2026, 5, 8, 12, 0, 0, 'UTC');
+        // Bucket de prueba: hace 1 hora, alineado al inicio del minuto.
+        // Usamos tiempo relativo para que el test sea reproducible cualquier dia
+        // (un bucket fijo se vuelve obsoleto cuando pasa fuera de la ventana 24h).
+        $this->bucket = now()->subHour()->startOfMinute();
     }
 
     public function test_aggregates_metrics_when_bucket_has_data(): void
