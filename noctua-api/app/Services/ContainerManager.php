@@ -31,7 +31,7 @@ class ContainerManager
      * @throws ValidationException si las pre-condiciones no se cumplen
      * @throws RuntimeException si Docker falla
      */
-    public function create(Service $service): Service
+    public function create(Service $service, ?string $apiKeyPlain = null): Service
     {
         $this->assertHasTemplate($service);
         $this->assertPortIsAvailable($service);
@@ -49,8 +49,8 @@ class ContainerManager
             }
         }
 
-        // 2. Construir variables de entorno (template + Noctua)
-        $env = $this->buildEnvironmentVariables($service, $template);
+        // 2. Construir variables de entorno (template + Noctua + opcional API key)
+        $env = $this->buildEnvironmentVariables($service, $template, $apiKeyPlain);
 
         // 3. Construir el objeto DockerContainer (sin arrancarlo todavía)
         $container = $this->buildDockerContainer($service, $template, $volumeMounts, $env);
@@ -75,7 +75,29 @@ class ContainerManager
         // 5. Conectar a la red de Noctua para que pueda hablar con noctua-app
         $this->connectToNetwork($containerId, config('noctua.docker_network'));
 
-        // 6. Persistir en BD
+        // 6. S6 D4: si hay API key plain, levantar sidecar metrics-agent.
+        // Si el sidecar falla, hacemos rollback completo del principal
+        // (coherente con patrón "todo o nada" del create).
+        if ($apiKeyPlain !== null) {
+            try {
+                $this->runMetricsAgent($service, $containerId, $apiKeyPlain);
+            } catch (\Throwable $e) {
+                $this->runDockerCommand(
+                    ['docker', 'rm', '-f', $this->buildContainerName($service)],
+                    allowFailure: true,
+                );
+                foreach (array_keys($volumeMounts) as $volumeName) {
+                    $this->removeDockerVolume($volumeName);
+                }
+                throw new RuntimeException(
+                    "Sidecar metrics-agent falló para servicio {$service->id}: " . $e->getMessage(),
+                    0,
+                    $e
+                );
+            }
+        }
+
+        // 7. Persistir en BD
         $service->update([
             'container_id' => $containerId,
             'container_status' => 'starting',
@@ -103,6 +125,12 @@ class ContainerManager
         }
 
         $containerName = $this->buildContainerName($service);
+
+        // 0. S6 D4: Destruir sidecar PRIMERO. Su lifecycle depende del
+        //    principal: si tumbas el principal antes, el sidecar genera
+        //    errores en logs por unos segundos hasta su turno.
+        //    Idempotente: destroyMetricsAgent usa allowFailure=true.
+        $this->destroyMetricsAgent($service);
 
         // 1. Detener el contenedor (ignora si ya está detenido)
         $this->runDockerCommand(['docker', 'stop', $containerName], allowFailure: true);
@@ -338,17 +366,22 @@ class ContainerManager
         return "{$prefix}-{$service->id}-{$suffix}";
     }
 
-    protected function buildEnvironmentVariables(Service $service, ServiceTemplate $template): array
-    {
+    protected function buildEnvironmentVariables(
+        Service $service,
+        ServiceTemplate $template,
+        ?string $apiKeyPlain = null,
+    ): array {
         $env = $template->default_env ?? [];
 
         // Variables de Noctua para que el contenedor pueda hablar con la API.
         $env['NOCTUA_API_URL'] = config('noctua.internal_api_url');
 
-        // TODO S6: inyectar NOCTUA_API_KEY desde $service->api_key_hash.
-        // No se hace en S5 porque las plantillas no consumen la API aún.
-        // Entra en S6 junto con CalculateAggregatedMetricsJob, cuando Laravel
-        // y Node+Express empiecen a reportar métricas custom autenticadas.
+        // S6 D4: API key plain inyectada como env var para que la app
+        // del usuario pueda reportar metricas custom autenticadas.
+        // El sidecar (metrics-agent) usa la misma key con el mismo header.
+        if ($apiKeyPlain !== null) {
+            $env['NOCTUA_API_KEY'] = $apiKeyPlain;
+        }
 
         return $env;
     }
@@ -450,5 +483,78 @@ class ContainerManager
         }
 
         return trim($process->getOutput());
+    }
+
+    // -----------------------------------------------------------------
+    // S6 D4 — Sidecar Metrics Agent
+    //
+    // Patron sidecar: por cada contenedor principal levantamos un
+    // segundo contenedor (noctua/metrics-agent:1.0) que reporta CPU
+    // y memoria del principal a la API de Noctua via API key.
+    //
+    // Convencion de nombres: noctua-svc-{id}-agent. No se persiste en BD;
+    // si necesitamos buscarlo, derivamos el nombre del service id.
+    // -----------------------------------------------------------------
+
+    /**
+     * Levanta el sidecar de metricas para un servicio principal ya provisionado.
+     *
+     * @throws RuntimeException si docker run falla
+     */
+    protected function runMetricsAgent(
+        Service $service,
+        string $mainContainerId,
+        string $apiKeyPlain,
+    ): string {
+        $agentName = $this->buildAgentName($service);
+        $networkName = config('noctua.docker_network');
+        $apiUrl = config('noctua.internal_api_url');
+
+        $this->runDockerCommand([
+            'docker', 'run', '-d',
+            '--name', $agentName,
+            '--network', $networkName,
+            '--restart', 'unless-stopped',
+            '-v', '/var/run/docker.sock:/var/run/docker.sock:ro',
+            '-e', "NOCTUA_API_URL={$apiUrl}",
+            '-e', "NOCTUA_API_KEY={$apiKeyPlain}",
+            '-e', "TARGET_CONTAINER={$mainContainerId}",
+            '-e', 'REPORT_INTERVAL_SEC=30',
+            'noctua/metrics-agent:1.0',
+        ]);
+
+        Log::info("ContainerManager: sidecar metrics-agent levantado", [
+            'service_id' => $service->id,
+            'agent_name' => $agentName,
+            'target'     => $mainContainerId,
+        ]);
+
+        return $agentName;
+    }
+
+    /**
+     * Detiene y elimina el sidecar asociado al servicio.
+     * Idempotente: si no existe, no falla (allowFailure=true).
+     */
+    protected function destroyMetricsAgent(Service $service): void
+    {
+        $agentName = $this->buildAgentName($service);
+
+        $this->runDockerCommand(['docker', 'stop', $agentName], allowFailure: true);
+        $this->runDockerCommand(['docker', 'rm', '-f', $agentName], allowFailure: true);
+
+        Log::info("ContainerManager: sidecar metrics-agent destruido", [
+            'service_id' => $service->id,
+            'agent_name' => $agentName,
+        ]);
+    }
+
+    /**
+     * Convencion de nombres del sidecar: noctua-svc-{id}-agent.
+     */
+    protected function buildAgentName(Service $service): string
+    {
+        $prefix = config('noctua.resource_prefix');
+        return "{$prefix}-{$service->id}-agent";
     }
 }

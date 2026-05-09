@@ -36,6 +36,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::apiResource('services', ServiceController::class);
     Route::get('services/{service}/metrics/history', [MetricController::class, 'history']);
+    Route::get('services/{service}/metrics/summary', [MetricController::class, 'summary']);
     // Sprint 2 — Service Templates (catálogo)
     Route::get('/service-templates', [ServiceTemplateController::class, 'index']);
 

@@ -376,6 +376,148 @@ class ContainerManagerTest extends TestCase
             implode("\n", array_map(fn($c) => '  ' . implode(' ', $c), $this->manager->commandsRun))
         );
     }
+
+    // -----------------------------------------------------------------
+    // S6 D4 — Tests del sidecar metrics-agent
+    // -----------------------------------------------------------------
+
+    public function test_injects_api_key_into_environment_when_plain_key_provided(): void
+    {
+        $service = $this->makeService();
+        $plainKey = 'test-plain-key-' . Str::random(32);
+
+        $this->manager->create($service, $plainKey);
+
+        $this->assertArrayHasKey('NOCTUA_API_KEY', $this->manager->lastBuildArgs['env']);
+        $this->assertEquals($plainKey, $this->manager->lastBuildArgs['env']['NOCTUA_API_KEY']);
+        // NOCTUA_API_URL siempre se inyecta independiente de la plain key
+        $this->assertArrayHasKey('NOCTUA_API_URL', $this->manager->lastBuildArgs['env']);
+    }
+
+    public function test_does_not_inject_api_key_when_null(): void
+    {
+        $service = $this->makeService();
+
+        // Llamada legacy sin segundo argumento (backward compatibility)
+        $this->manager->create($service);
+
+        $this->assertArrayNotHasKey('NOCTUA_API_KEY', $this->manager->lastBuildArgs['env']);
+        // NOCTUA_API_URL sigue presente: es independiente de la plain key
+        $this->assertArrayHasKey('NOCTUA_API_URL', $this->manager->lastBuildArgs['env']);
+    }
+
+    public function test_runs_metrics_agent_when_api_key_provided(): void
+    {
+        $service = $this->makeService();
+        $plainKey = 'test-plain-key-' . Str::random(32);
+        $expectedAgentName = "noctua-test-{$service->id}-agent";
+
+        $this->manager->create($service, $plainKey);
+
+        // Buscamos el comando docker run del sidecar entre todos los ejecutados
+        $sidecarCommand = null;
+        foreach ($this->manager->commandsRun as $cmd) {
+            if (in_array('noctua/metrics-agent:1.0', $cmd, true)) {
+                $sidecarCommand = $cmd;
+                break;
+            }
+        }
+
+        $this->assertNotNull($sidecarCommand, 'Sidecar docker run no fue invocado');
+        $this->assertContains('docker', $sidecarCommand);
+        $this->assertContains('run', $sidecarCommand);
+        $this->assertContains('-d', $sidecarCommand);
+        $this->assertContains($expectedAgentName, $sidecarCommand);
+        // El sidecar recibe la plain key y el container_id del principal
+        $this->assertContains("NOCTUA_API_KEY={$plainKey}", $sidecarCommand);
+        $this->assertContains(
+            "TARGET_CONTAINER=" . TestableContainerManager::FAKE_CONTAINER_ID,
+            $sidecarCommand,
+        );
+    }
+
+    public function test_does_not_run_sidecar_when_api_key_is_null(): void
+    {
+        $service = $this->makeService();
+
+        $this->manager->create($service);
+
+        // Verificacion explicita: ningun comando ejecutado debe referenciar
+        // la imagen del sidecar. Usamos assertEmpty (en vez de iterar con
+        // assertNotContains) para que la asercion corra incluso si el array
+        // esta vacio — un test "risky" sin asserts no protege de regresiones.
+        $sidecarCommands = array_filter(
+            $this->manager->commandsRun,
+            fn($cmd) => in_array('noctua/metrics-agent:1.0', $cmd, true),
+        );
+
+        $this->assertEmpty(
+            $sidecarCommands,
+            'El sidecar fue invocado pese a no haberse pasado plain key',
+        );
+    }
+
+    public function test_destroys_sidecar_before_main_container_on_destroy(): void
+    {
+        $service = $this->makeService();
+        $plainKey = 'test-plain-key-' . Str::random(32);
+
+        // Setup: crear el servicio con sidecar para que destroy tenga algo que limpiar
+        $this->manager->create($service, $plainKey);
+
+        // Limpiamos el log de comandos para que solo queden los de destroy
+        $this->manager->commandsRun = [];
+
+        $this->manager->destroy($service->fresh());
+
+        $agentName = "noctua-test-{$service->id}-agent";
+        $mainName  = "noctua-test-{$service->id}";
+
+        // Buscar indices del primer "stop" de cada contenedor
+        $sidecarStopIndex = null;
+        $mainStopIndex = null;
+        foreach ($this->manager->commandsRun as $i => $cmd) {
+            if ($cmd === ['docker', 'stop', $agentName] && $sidecarStopIndex === null) {
+                $sidecarStopIndex = $i;
+            }
+            if ($cmd === ['docker', 'stop', $mainName] && $mainStopIndex === null) {
+                $mainStopIndex = $i;
+            }
+        }
+
+        $this->assertNotNull($sidecarStopIndex, 'No se invoco docker stop sobre el sidecar');
+        $this->assertNotNull($mainStopIndex, 'No se invoco docker stop sobre el contenedor principal');
+        $this->assertLessThan(
+            $mainStopIndex,
+            $sidecarStopIndex,
+            'El sidecar debe detenerse ANTES del contenedor principal',
+        );
+    }
+
+    public function test_rolls_back_main_container_when_sidecar_fails(): void
+    {
+        $service = $this->makeService();
+        $plainKey = 'test-plain-key-' . Str::random(32);
+
+        // Forzamos que el sidecar falle al levantarse
+        $this->manager->failOnRunMetricsAgent = true;
+
+        try {
+            $this->manager->create($service, $plainKey);
+            $this->fail('create() debio lanzar RuntimeException por sidecar fallido');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('Sidecar metrics-agent falló', $e->getMessage());
+        }
+
+        // El rollback debe haber ejecutado docker rm -f del contenedor principal
+        $mainName = "noctua-test-{$service->id}";
+        $this->assertCommandRan(['docker', 'rm', '-f', $mainName]);
+
+        // Y el servicio en BD NO debe quedar con container_id (no llegamos al persist final)
+        $service->refresh();
+        $this->assertNull($service->container_id);
+        $this->assertNull($service->container_status);
+    }
 }
 
 /**
@@ -393,6 +535,18 @@ class TestableContainerManager extends ContainerManager
     public array $lastBuildArgs = [];
 
     public bool $failOnRunContainer = false;
+    public bool $failOnRunMetricsAgent = false;
+
+    protected function runMetricsAgent(
+        Service $service,
+        string $mainContainerId,
+        string $apiKeyPlain,
+    ): string {
+        if ($this->failOnRunMetricsAgent) {
+            throw new RuntimeException('Simulated metrics-agent failure');
+        }
+        return parent::runMetricsAgent($service, $mainContainerId, $apiKeyPlain);
+    }
 
     protected function runDockerContainer(DockerContainer $container): DockerContainerInstance
     {

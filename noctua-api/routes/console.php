@@ -55,3 +55,36 @@ Schedule::job(new SyncContainerStatusJob(), 'container-sync')
     ->onOneServer()
     ->name('sync-container-status')
     ->description('Sincroniza container_status con Docker cada 30s');
+
+/**
+ * DispatchAggregationJobsJob — calcula las 5 metricas agregadas Four Golden Signals
+ * (request_rate, error_rate, response_time_p95/p99, uptime_24h).
+ *
+ * Frecuencia: cada minuto.
+ *
+ * Justificacion de la frecuencia:
+ *   - Bucket fijo de 1 minuto: agrupa por date_trunc('minute', recorded_at).
+ *     El job calcula el bucket recien cerrado (minuto anterior completo).
+ *   - Mas rapido que 1min no aporta: el bucket minimo es 1 minuto, agregar
+ *     mas seguido recalcularia el mismo bucket.
+ *   - Mas lento dejaria gaps en las series temporales del dashboard.
+ *
+ * withoutOverlapping(120):
+ *   Si una ejecucion del orquestador tarda mas de 60s (servicios con
+ *   muchas metricas, BD saturada), la siguiente se salta. Lock expira
+ *   a los 120s para no bloquear indefinidamente si el job crashea.
+ *
+ * onOneServer():
+ *   Mismo razonamiento que SyncContainerStatusJob: previene ejecuciones
+ *   duplicadas en escenario multi-server futuro.
+ *
+ * Patron fan-out: el orquestador dispatcha N jobs hijos (uno por servicio)
+ * a la queue 'default'. Cada hijo calcula sus 5 agregadas independiente
+ * de los demas, lo que aisla fallos y paraleliza via workers de Horizon.
+ */
+Schedule::job(new \App\Jobs\DispatchAggregationJobsJob())
+    ->everyMinute()
+    ->withoutOverlapping(120)
+    ->onOneServer()
+    ->name('dispatch-aggregation-jobs')
+    ->description('Dispara calculo de metricas agregadas Four Golden Signals cada minuto');

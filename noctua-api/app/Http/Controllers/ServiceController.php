@@ -83,7 +83,7 @@ class ServiceController extends Controller
 
                 // ContainerManager::create lanza ValidationException o RuntimeException
                 // si falla. Cualquiera de las dos aborta la transacción y rollbackea.
-                $this->containerManager->create($service);
+                $this->containerManager->create($service, $plainKey);
 
                 return $service->fresh();
             });
