@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreMetricRequest;
 use App\Jobs\ProcessMetricJob;
 use App\Models\Service;
+use App\Services\MetricsSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,13 @@ class MetricController extends Controller
         );
 
         return response()->json(['message' => 'Métrica recibida y en cola.'], 202);
+    }
+
+    public function summary(Service $service, MetricsSummaryService $summaryService): JsonResponse
+    {
+        $this->authorize('view', $service);
+
+        return response()->json($summaryService->getSummary($service));
     }
 
     public function history(Request $request, Service $service): JsonResponse
