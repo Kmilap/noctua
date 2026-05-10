@@ -11,7 +11,8 @@ const allNavItems = [
   { label: 'Reglas de alerta', path: '/alert-rules', page: 'alert-rules' },
   { label: 'Incidentes',       path: '/incidents',   page: 'incidents'   },
   { label: 'Canales',          path: '/channels',    page: 'channels'    },
-  { label: 'Equipo',           path: '/team',        page: 'team'        },
+  { label: 'Equipo', path: '/team', page: 'team' },
+  { label: 'Actividad', path: '/activity', page: 'activity' },
 ]
 
 // Hook que detecta si el navegador está offline

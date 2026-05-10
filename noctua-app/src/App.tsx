@@ -13,6 +13,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import TeamPage from './pages/TeamPage'
 import AcceptInvitationPage from './pages/AcceptInvitationPage'
+import ActivityPage from "./pages/ActivityPage"
 import ServiceDetailPage from './pages/ServiceDetailPage'
 
 
@@ -40,6 +41,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard"      element={<ProtectedRoute page="dashboard"><DashboardPage /></ProtectedRoute>} />
           <Route path="services"       element={<ProtectedRoute page="services"><ServicesPage /></ProtectedRoute>} />
+          <Route path="activity" element={<ProtectedRoute page="activity"><ActivityPage /></ProtectedRoute>} />
           <Route path="services/:id"   element={<ProtectedRoute page="services"><ServiceDetailPage /></ProtectedRoute>} />
           <Route path="alert-rules"    element={<ProtectedRoute page="alert-rules"><AlertRulesPage /></ProtectedRoute>} />
           <Route path="incidents"      element={<ProtectedRoute page="incidents"><IncidentsPage /></ProtectedRoute>} />
