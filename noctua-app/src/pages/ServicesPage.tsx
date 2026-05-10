@@ -83,6 +83,11 @@ export default function ServicesPage() {
   const [modalMode, setModalMode] = useState<ModalMode>('choice')
   const [copied, setCopied]       = useState<number | null>(null)
   const [actionLoading, setActionLoading] = useState<Record<number, string>>({})
+  
+  // Modal eliminación bulk
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [selectedToDelete, setSelectedToDelete] = useState<Set<number>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   const [form, setForm] = useState({ name: '', url: '', interval: '30', unit: 'seconds' })
   const [formError, setFormError]   = useState('')
@@ -112,7 +117,7 @@ export default function ServicesPage() {
         name:                   s.name,
         url:                    s.url ?? null,
         status:                 s.status ?? 'unknown',
-        check_interval_seconds: s.check_interval_seconds,
+        check_interval_seconds: s.check_interval_seconds ?? 60,
         uptime_24h:             null,
         last_seen_at:           s.last_seen_at ?? null,
         template_id:            s.template_id ?? null,
@@ -180,13 +185,13 @@ export default function ServicesPage() {
     setSubmitting(true)
     setTplError('')
     try {
-      const res = await axios.post('http://localhost:8000/api/services', {
+      await axios.post('http://localhost:8000/api/services', {
         name:        tplName.trim(),
         template_id: selectedTemplate.id,
         host_port:   parseInt(tplPort),
       }, { headers })
-      setServices(prev => [res.data, ...prev])
       setModal(false)
+      await fetchServices()   // ← refetch completo para tener container_status fresco
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 422) {
         const errs = err.response.data.errors ?? {}
@@ -204,13 +209,38 @@ export default function ServicesPage() {
     const optimisticStatus: ContainerStatus = action === 'start' ? 'starting' : action === 'stop' ? 'stopped' : 'starting'
     setServices(prev => prev.map(s => s.id === svc.id ? { ...s, container_status: optimisticStatus } : s))
     try {
-      const res = await axios.post('http://localhost:8000/api/services/' + svc.id + '/' + action, {}, { headers })
-      setServices(prev => prev.map(s => s.id === svc.id ? { ...s, ...res.data } : s))
+      await axios.post('http://localhost:8000/api/services/' + svc.id + '/' + action, {}, { headers })
+      // Polling hasta que el status cambie de starting
+      if (action !== 'stop') {
+        let attempts = 0
+        const poll = setInterval(async () => {
+          attempts++
+          try {
+            const res = await axios.get('http://localhost:8000/api/services/' + svc.id, { headers })
+            const newStatus = res.data.container_status
+            setServices(prev => prev.map(s => s.id === svc.id ? { ...s, container_status: newStatus } : s))
+            if (newStatus !== 'starting' || attempts >= 20) clearInterval(poll)
+          } catch { clearInterval(poll) }
+        }, 3000)
+      }
     } catch {
       setServices(prev => prev.map(s => s.id === svc.id ? { ...s, container_status: svc.container_status } : s))
     } finally {
       setActionLoading(prev => { const n = { ...prev }; delete n[svc.id]; return n })
     }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedToDelete.size === 0) return
+    setDeleting(true)
+    const ids = Array.from(selectedToDelete)
+    await Promise.allSettled(
+      ids.map(id => axios.delete('http://localhost:8000/api/services/' + id, { headers }))
+    )
+    setServices(prev => prev.filter(s => !selectedToDelete.has(s.id)))
+    setSelectedToDelete(new Set())
+    setDeleteModalOpen(false)
+    setDeleting(false)
   }
 
   const inputClass = `
@@ -229,15 +259,31 @@ export default function ServicesPage() {
           <h1 className="text-3xl font-bold text-white tracking-tight">Servicios</h1>
           <p className="text-sm text-gray-400 mt-1">Registrá y gestioná los microservicios que Noctua monitorea</p>
         </div>
-        {canCreate && (
-          <button onClick={openModal} className="
-            bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)]
-            text-black font-semibold px-5 py-2.5 rounded-lg
-            transition-colors duration-200 glow-amber shrink-0
-          ">
-            + Nuevo servicio
-          </button>
-        )}
+        
+        <div className="flex items-center gap-3">
+          {canCreate && services.length > 0 && (
+            <button
+              onClick={() => { setSelectedToDelete(new Set()); setDeleteModalOpen(true) }}
+              className="p-2.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 border border-white/8 hover:border-red-500/20 transition-all duration-200"
+              title="Eliminar servicios"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+            </button>
+          )}
+
+          {canCreate && (
+            <button onClick={openModal} className="
+              bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)]
+              text-black font-semibold px-5 py-2.5 rounded-lg
+              transition-colors duration-200 glow-amber shrink-0
+            ">
+              + Nuevo servicio
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="relative max-w-sm">
@@ -472,6 +518,79 @@ export default function ServicesPage() {
           </div>
         )}
       </Modal>
+
+      {/* Modal eliminación bulk */}
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div
+            className="w-full max-w-md rounded-2xl border border-white/10 p-6 flex flex-col gap-5"
+            style={{ background: 'rgba(15,14,23,0.98)', backdropFilter: 'blur(20px)' }}
+          >
+            <div>
+              <h2 className="text-lg font-bold text-white">Eliminar servicios</h2>
+              <p className="text-sm text-gray-400 mt-1">Seleccioná los servicios que querés eliminar. Esta acción no se puede deshacer.</p>
+            </div>
+
+            <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
+              {services.map(svc => {
+                const tpl = svc.template_id ? templates.find(t => t.id === svc.template_id) : null
+                const checked = selectedToDelete.has(svc.id)
+                return (
+                  <button
+                    key={svc.id}
+                    onClick={() => setSelectedToDelete(prev => {
+                      const next = new Set(prev)
+                      checked ? next.delete(svc.id) : next.add(svc.id)
+                      return next
+                    })}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all duration-150 ${
+                      checked
+                        ? 'border-red-500/30 bg-red-500/10'
+                        : 'border-white/8 bg-white/3 hover:bg-white/6'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                      checked ? 'border-red-400 bg-red-400' : 'border-gray-600'
+                    }`}>
+                      {checked && (
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                          <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-white truncate">{svc.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{tpl ? tpl.name : 'Externo'}</p>
+                    </div>
+                    {svc.container_status && (
+                      <span className={`text-xs px-2 py-0.5 rounded-md border ${containerStatusConfig[svc.container_status]?.badge}`}>
+                        {containerStatusConfig[svc.container_status]?.label}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={deleting}
+                className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={deleting || selectedToDelete.size === 0}
+                className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? 'Eliminando...' : `Eliminar ${selectedToDelete.size > 0 ? `(${selectedToDelete.size})` : ''}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

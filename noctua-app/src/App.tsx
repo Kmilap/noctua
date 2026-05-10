@@ -15,6 +15,7 @@ import TeamPage from './pages/TeamPage'
 import AcceptInvitationPage from './pages/AcceptInvitationPage'
 import ServiceDetailPage from './pages/ServiceDetailPage'
 
+
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />

@@ -4,6 +4,7 @@ import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
 import MetricsChart from '../components/MetricsChart'
+import { ChevronLeft } from 'lucide-react'
 
 type Signals = {
   latency: {
@@ -142,8 +143,11 @@ export default function ServiceDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 mt-24">
         <p className="text-gray-400">No se encontró el servicio.</p>
-        <button onClick={() => navigate(-1)} className="text-sm text-blue-400 hover:underline">
-          ← Volver
+        <button
+            onClick={() => navigate(-1)}
+            className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/8 transition-all duration-200"
+            >
+            <ChevronLeft size={24} />
         </button>
       </div>
     )
@@ -157,9 +161,9 @@ export default function ServiceDetailPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="text-gray-500 hover:text-white transition-colors text-lg"
+          className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/8 transition-all duration-200"
         >
-          ←
+          <ChevronLeft size={20} />
         </button>
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">{summary.service_name}</h1>

@@ -28,10 +28,11 @@ class ProcessHeartbeatJob implements ShouldQueue
 
         $status = match(true) {
             $this->statusCode >= 200 && $this->statusCode < 300 => 'active',
+            $this->statusCode >= 300 && $this->statusCode < 400 => 'active',  // redirects = activo
             $this->statusCode >= 400 && $this->statusCode < 500 => 'warning',
             $this->statusCode >= 500 => 'critical',
             default => 'unknown',
-        };
+        }; 
 
         Service::where('id', $this->serviceId)
             ->update([
