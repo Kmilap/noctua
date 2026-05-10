@@ -75,3 +75,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::post('/account/reactivate', [\App\Http\Controllers\AccountController::class, 'reactivate']);
 
 Route::post('/account/resend-reactivation', [\App\Http\Controllers\AccountController::class, 'resendReactivation']);
+
+// Perfil de usuario
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::patch('/user/profile', [\App\Http\Controllers\UserProfileController::class, 'update']);
+});

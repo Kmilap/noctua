@@ -26,6 +26,10 @@ export default function ProfilePage() {
   const [passNueva, setPassNueva]     = useState('')
   const [passConfirm, setPassConfirm] = useState('')
 
+  const [showPassActual, setShowPassActual]   = useState(false)
+  const [showPassNueva, setShowPassNueva]     = useState(false)
+  const [showPassConfirm, setShowPassConfirm] = useState(false)
+
   const [saving, setSaving]   = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError]     = useState('')
@@ -36,11 +40,9 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError]             = useState('')
 
   // Notificaciones (UI only por ahora — backend no tiene el endpoint)
-  const [notifs, setNotifs] = useState({
-    critical: true,
-    warning: true,
-    daily: false,
-    updates: false,
+  const [notifs, setNotifs] = useState(() => {
+    const saved = localStorage.getItem('noctua_notifs')
+    return saved ? JSON.parse(saved) : { critical: true, warning: true, daily: false, updates: false }
   })
 
   const handleSave = async () => {
@@ -54,6 +56,8 @@ export default function ProfilePage() {
       setSaving(false)
       return
     }
+    
+    localStorage.setItem('noctua_notifs', JSON.stringify(notifs))
 
     try {
       const payload: any = { name: `${nombre} ${apellido}`.trim(), email }
@@ -218,17 +222,32 @@ export default function ProfilePage() {
 
             <div className="flex flex-col gap-1.5">
               <label className={labelClass}>Contraseña actual</label>
-              <input type="password" placeholder="••••••••" value={passActual} onChange={e => setPassActual(e.target.value)} className={inputClass} />
+              <div className="relative">
+                <input type={showPassActual ? 'text' : 'password'} placeholder="••••••••" value={passActual} onChange={e => setPassActual(e.target.value)} className={inputClass + ' pr-10'} />
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => setShowPassActual(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
+                  {showPassActual ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>Nueva contraseña</label>
-                <input type="password" placeholder="••••••••" value={passNueva} onChange={e => setPassNueva(e.target.value)} className={inputClass} />
+                <div className="relative">
+                  <input type={showPassNueva ? 'text' : 'password'} placeholder="••••••••" value={passNueva} onChange={e => setPassNueva(e.target.value)} className={inputClass + ' pr-10'} />
+                  <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => setShowPassNueva(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
+                    {showPassNueva ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>}
+                  </button>
+                </div>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className={labelClass}>Confirmar contraseña</label>
-                <input type="password" placeholder="••••••••" value={passConfirm} onChange={e => setPassConfirm(e.target.value)} className={inputClass} />
+                <div className="relative">
+                  <input type={showPassConfirm ? 'text' : 'password'} placeholder="••••••••" value={passConfirm} onChange={e => setPassConfirm(e.target.value)} className={inputClass + ' pr-10'} />
+                  <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => setShowPassConfirm(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
+                    {showPassConfirm ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -326,7 +345,7 @@ export default function ProfilePage() {
                 <span className="text-sm text-gray-300">{item.label}</span>
                 <ToggleSwitch
                   checked={notifs[item.key as keyof typeof notifs]}
-                  onChange={() => setNotifs(n => ({ ...n, [item.key]: !n[item.key as keyof typeof notifs] }))}
+                  onChange={() => setNotifs((n: typeof notifs) => ({ ...n, [item.key]: !n[item.key as keyof typeof notifs] }))}
                   size="sm"
                 />
               </div>
