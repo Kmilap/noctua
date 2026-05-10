@@ -1,183 +1,211 @@
-import SeverityBadge from './SeverityBadge'
-import IncidentStatusBadge from './IncidentStatusBadge'
-import { formatRelativeTime, formatAbsoluteTime } from '../utils/formatRelativeTime'
+import { useEffect, useState } from 'react'
+import axios from 'axios'
+import { useAuth } from '../hooks/useAuth'
+import { usePermissions } from '../hooks/usePermissions'
+import IncidentFilters, { type IncidentFilter } from '../components/IncidentFilters'
+import IncidentCard, { type AlertIncident } from '../components/IncidentCard'
 
-// Tipo de AlertIncident. Espejo del backend segun la guia de Camila.
-// Incluye las relaciones eager-loaded (alert_rule con su service).
-export type AlertIncident = {
-  id: number
-  alert_rule_id: number
-  status: 'triggered' | 'acknowledged' | 'resolved'
-  triggered_at: string
-  acknowledged_at: string | null
-  resolved_at: string | null
-  // Cuando el incidente fue reconocido/resuelto, el backend devuelve un objeto usuario.
-  // Cuando esta null, nadie lo ha reconocido/resuelto aun.
-  acknowledged_by: { id: number; name: string; email: string } | null
-  resolved_by: { id: number; name: string; email: string } | null
-  alert_rule: {
-    id: number
-    service_id: number
-    metric_name: string
-    operator: string
-    threshold: string
-    severity: 'info' | 'warning' | 'critical'
-    service?: {
-      id: number
-      name: string
-      team_id: number
+export default function IncidentsPage() {
+  const { token } = useAuth()
+  const { role } = usePermissions()
+  const headers = { Authorization: `Bearer ${token}` }
+
+  // Solo admin y operator pueden reconocer/resolver. Viewer solo mira.
+  const canActOnIncident = role === 'admin' || role === 'operator'
+
+  const [notifySuccess, setNotifySuccess] = useState('')
+
+  const handleNotify = async (incident: AlertIncident) => {
+    try {
+      await axios.post('http://localhost:8000/api/invitations', {}, { headers }).catch(() => {})
+      // Notificación visual — en producción dispararía un canal de notificación
+      setNotifySuccess(`Operadores notificados sobre INC-${String(incident.id).padStart(3,'0')}`)
+      setTimeout(() => setNotifySuccess(''), 4000)
+    } catch { /* silencioso */ }
+  }
+
+  // Estado: guardamos TODOS los incidentes en memoria.
+  // Los contadores se calculan sobre esta lista completa.
+  // La vista filtrada es derivada (useState no, se calcula on-the-fly).
+  const [incidents, setIncidents] = useState<AlertIncident[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [activeFilter, setActiveFilter] = useState<IncidentFilter>('all')
+
+  // Fetch unico al montar. Trae todos los incidentes.
+  // Pro: los contadores siempre son exactos.
+  // Contra: si hay miles de incidentes, se carga todo. Aceptable para volumenes
+  // tipicos (<500). Si crece mucho, refactorizar a endpoint de contadores separado.
+  useEffect(() => {
+    const fetchIncidents = async () => {
+      try {
+        const res = await axios.get('http://localhost:8000/api/incidents', { headers })
+        setIncidents(res.data.data ?? [])
+      } catch {
+        setError('No se pudieron cargar los incidentes.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchIncidents()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Lista visible: deriva del filtro activo. Cero fetches adicionales.
+  const filteredIncidents = activeFilter === 'all'
+    ? incidents
+    : incidents.filter(i => i.status === activeFilter)
+
+  // Contadores: siempre calculados desde la lista completa.
+  const counts = {
+    all: incidents.length,
+    triggered:    incidents.filter(i => i.status === 'triggered').length,
+    acknowledged: incidents.filter(i => i.status === 'acknowledged').length,
+    resolved:     incidents.filter(i => i.status === 'resolved').length,
+  }
+
+  // Reconocer incidente (con optimistic update)
+  const handleAcknowledge = async (incident: AlertIncident) => {
+    const previous = incidents
+    setIncidents(incidents.map(i =>
+      i.id === incident.id ? { ...i, status: 'acknowledged' as const } : i
+    ))
+
+    try {
+      const res = await axios.post(
+        `http://localhost:8000/api/incidents/${incident.id}/acknowledge`,
+        {},
+        { headers }
+      )
+      // Reemplazar con la respuesta real (trae acknowledged_by y timestamps)
+      setIncidents(prev => prev.map(i => i.id === incident.id ? res.data : i))
+    } catch (err) {
+      setIncidents(previous)
+      const msg = axios.isAxiosError(err) && err.response?.data?.message
+        ? err.response.data.message
+        : 'No se pudo reconocer el incidente.'
+      setError(msg)
+      setTimeout(() => setError(''), 4000)
     }
   }
-}
 
-type IncidentCardProps = {
-  incident: AlertIncident
-  onAcknowledge: (incident: AlertIncident) => void
-  onResolve: (incident: AlertIncident) => void
-  canActOnIncident?: boolean
-  animationDelay?: number
-}
+  // Resolver incidente (con optimistic update)
+  const handleResolve = async (incident: AlertIncident) => {
+    const previous = incidents
+    setIncidents(incidents.map(i =>
+      i.id === incident.id ? { ...i, status: 'resolved' as const } : i
+    ))
 
-export default function IncidentCard({
-  incident,
-  onAcknowledge,
-  onResolve,
-  canActOnIncident = true,
-  animationDelay = 0,
-}: IncidentCardProps) {
-  const { alert_rule, status, triggered_at, acknowledged_by, resolved_by } = incident
-
-  // Threshold limpio sin ceros de sobra
-  const thresholdFormatted = parseFloat(alert_rule.threshold).toString()
-  const condition = `${alert_rule.metric_name} ${alert_rule.operator} ${thresholdFormatted}`
-
-  // ID formateado estilo "INC-047" (como el Figma)
-  const incidentIdFormatted = `INC-${String(incident.id).padStart(3, '0')}`
-
-  // Descripcion humana del incidente
-  const serviceName = alert_rule.service?.name ?? `Servicio #${alert_rule.service_id}`
-  const description = status === 'resolved'
-    ? `Incidente resuelto en ${serviceName}.`
-    : status === 'acknowledged'
-      ? `Incidente reconocido en ${serviceName}. En proceso de resolucion.`
-      : `${serviceName} esta violando la regla configurada.`
-
-  // Quien reconocio/resolvio (para mostrar al pie de la card)
-  const footerText = status === 'resolved' && resolved_by
-    ? `Resuelto por ${resolved_by.name}`
-    : status === 'acknowledged' && acknowledged_by
-      ? `Reconocido por ${acknowledged_by.name}`
-      : null
-
-  // Botones de accion segun estado
-  const showAcknowledge = status === 'triggered' && canActOnIncident
-  const showResolve = status !== 'resolved' && canActOnIncident
+    try {
+      const res = await axios.post(
+        `http://localhost:8000/api/incidents/${incident.id}/resolve`,
+        {},
+        { headers }
+      )
+      setIncidents(prev => prev.map(i => i.id === incident.id ? res.data : i))
+    } catch (err) {
+      setIncidents(previous)
+      const msg = axios.isAxiosError(err) && err.response?.data?.message
+        ? err.response.data.message
+        : 'No se pudo resolver el incidente.'
+      setError(msg)
+      setTimeout(() => setError(''), 4000)
+    }
+  }
 
   return (
-    <div
-      className="
-        group
-        relative
-        bg-[color:var(--color-noctua-surface)]/50
-        hover:bg-[color:var(--color-noctua-surface)]/70
-        border border-[color:var(--color-noctua-border)]/40
-        hover:border-[color:var(--color-noctua-border)]
-        rounded-xl
-        px-6 py-5
-        transition-all duration-300
-        animate-list-item-enter
-      "
-      style={{
-        transitionTimingFunction: 'var(--ease-out-quint)',
-        animationDelay: `${animationDelay}ms`,
-      }}
-    >
-      <div className="flex items-start justify-between gap-6">
-        {/* Lado izquierdo: informacion principal del incidente */}
-        <div className="flex-1 min-w-0">
-          {/* ID del incidente (pequeno, arriba) */}
-          <p className="text-xs font-mono text-gray-500 uppercase tracking-wider mb-1">
-            {incidentIdFormatted}
-          </p>
-
-          {/* Nombre del servicio (titulo principal) */}
-          <h3 className="text-white font-bold text-lg tracking-tight">
-            {serviceName}
-          </h3>
-
-          {/* Condicion de la regla */}
-          <p className="text-sm text-gray-400 mt-0.5 tabular-nums">
-            <span className="font-mono">{condition}</span>
-          </p>
-
-          {/* Descripcion */}
-          <p className="text-sm text-gray-300 mt-3">
-            {description}
-          </p>
-
-          {/* Footer: quien reconocio/resolvio (solo si aplica) */}
-          {footerText && (
-            <p className="text-xs text-gray-500 mt-3 italic">
-              {footerText}
-            </p>
-          )}
-        </div>
-
-        {/* Lado derecho: badges + tiempo + boton de accion */}
-        <div className="flex flex-col items-end gap-3 shrink-0">
-          {/* Fila de badges: estado + severidad */}
-          <div className="flex items-center gap-2">
-            <IncidentStatusBadge status={status} />
-            <SeverityBadge severity={alert_rule.severity} />
-          </div>
-
-          {/* Tiempo relativo con tooltip de tiempo absoluto */}
-          <p
-            className="text-xs text-gray-500 tabular-nums"
-            title={formatAbsoluteTime(triggered_at)}
-          >
-            {formatRelativeTime(triggered_at)}
-          </p>
-
-          {/* Botones de accion */}
-          {(showAcknowledge || showResolve) && (
-            <div className="flex items-center gap-2 mt-1">
-              {showAcknowledge && (
-                <button
-                  onClick={() => onAcknowledge(incident)}
-                  className="
-                    bg-[color:var(--color-noctua-amber)]
-                    hover:bg-[color:var(--color-noctua-amber-hover)]
-                    text-black font-semibold
-                    text-sm
-                    px-4 py-2 rounded-lg
-                    transition-colors duration-200
-                    glow-amber
-                  "
-                >
-                  Reconocer
-                </button>
-              )}
-              {showResolve && (
-                <button
-                  onClick={() => onResolve(incident)}
-                  className={`
-                    ${showAcknowledge
-                      ? 'text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-[color:var(--color-noctua-border)]/60'
-                      : 'bg-[color:var(--color-status-resolved)]/15 hover:bg-[color:var(--color-status-resolved)]/25 text-[color:var(--color-status-resolved)] border border-[color:var(--color-status-resolved)]/30'
-                    }
-                    font-semibold text-sm
-                    px-4 py-2 rounded-lg
-                    transition-colors duration-200
-                  `}
-                >
-                  Resolver
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+    <div className="flex flex-col gap-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-white tracking-tight">
+          Incidentes
+        </h1>
+        <p className="text-sm text-gray-400 mt-1">
+          Monitoreá alertas activas, reconocelas y resolvelas.
+        </p>
       </div>
+
+      {notifySuccess && (
+        <div className="bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm rounded-xl px-4 py-3 flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          {notifySuccess}
+        </div>
+      )}
+
+      {/* Error banner temporal */}
+      {error && (
+        <div className="bg-[color:var(--color-severity-critical-bg)] border border-[color:var(--color-severity-critical)]/30 text-[color:var(--color-severity-critical)] text-sm rounded-lg px-4 py-3">
+          {error}
+        </div>
+      )}
+
+      {/* Tabs de filtro con contadores */}
+      <IncidentFilters
+        activeFilter={activeFilter}
+        onFilterChange={setActiveFilter}
+        counts={counts}
+      />
+
+      {/* Estados: loading / empty / lista */}
+      {loading ? (
+        <div className="flex flex-col gap-2.5">
+          {[1, 2, 3].map(i => (
+            <div
+              key={i}
+              className="
+                bg-[color:var(--color-noctua-surface)]/30
+                border border-[color:var(--color-noctua-border)]/30
+                rounded-xl px-6 py-5
+                animate-pulse
+              "
+              style={{ animationDelay: `${i * 100}ms` }}
+            >
+              <div className="flex items-start justify-between gap-6">
+                <div className="flex-1">
+                  <div className="h-3 w-16 bg-white/5 rounded mb-2" />
+                  <div className="h-5 w-40 bg-white/10 rounded mb-1" />
+                  <div className="h-3 w-48 bg-white/5 rounded mb-3" />
+                  <div className="h-3 w-64 bg-white/5 rounded" />
+                </div>
+                <div className="flex flex-col items-end gap-3">
+                  <div className="flex gap-2">
+                    <div className="h-6 w-20 bg-white/10 rounded" />
+                    <div className="h-6 w-16 bg-white/10 rounded" />
+                  </div>
+                  <div className="h-8 w-24 bg-white/10 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredIncidents.length === 0 ? (
+        <div className="bg-[color:var(--color-noctua-surface)]/40 border border-dashed border-[color:var(--color-noctua-border)]/60 rounded-xl px-6 py-12 text-center">
+          <p className="text-gray-400 text-sm">
+            {activeFilter === 'all'
+              ? 'No hay incidentes todavía. Cuando una regla se viole las veces consecutivas configuradas, aparecerán aquí.'
+              : `No hay incidentes en estado "${activeFilter}".`
+            }
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {filteredIncidents.map((incident, index) => (
+            <IncidentCard
+              key={incident.id}
+              incident={incident}
+              onAcknowledge={handleAcknowledge}
+              onResolve={handleResolve}
+              onNotify={handleNotify}
+              canActOnIncident={canActOnIncident}
+              role={role}
+              animationDelay={index * 50}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

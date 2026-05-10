@@ -3,8 +3,8 @@ import { useAuth } from './useAuth'
 type Role = 'admin' | 'operator' | 'viewer'
 
 const permissions: Record<Role, string[]> = {
-  admin:    ['dashboard', 'services', 'alert-rules', 'incidents', 'channels', 'team', 'activity'],
-  operator: ['dashboard', 'services', 'alert-rules', 'incidents', 'activity'],
+  admin:    ['dashboard', 'services', 'alert-rules', 'incidents', 'channels', 'team', 'activity', 'historial'],
+  operator: ['dashboard', 'services', 'alert-rules', 'incidents', 'activity', 'historial'],
   viewer:   ['dashboard', 'services', 'incidents'],
 }
 

@@ -14,6 +14,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import TeamPage from './pages/TeamPage'
 import AcceptInvitationPage from './pages/AcceptInvitationPage'
 import ActivityPage from "./pages/ActivityPage"
+import HistorialPage from "./pages/HistorialPage"
 import ServiceDetailPage from './pages/ServiceDetailPage'
 
 
@@ -41,6 +42,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard"      element={<ProtectedRoute page="dashboard"><DashboardPage /></ProtectedRoute>} />
           <Route path="services"       element={<ProtectedRoute page="services"><ServicesPage /></ProtectedRoute>} />
+          <Route path="historial" element={<ProtectedRoute page="historial"><HistorialPage /></ProtectedRoute>} />
           <Route path="activity" element={<ProtectedRoute page="activity"><ActivityPage /></ProtectedRoute>} />
           <Route path="services/:id"   element={<ProtectedRoute page="services"><ServiceDetailPage /></ProtectedRoute>} />
           <Route path="alert-rules"    element={<ProtectedRoute page="alert-rules"><AlertRulesPage /></ProtectedRoute>} />
