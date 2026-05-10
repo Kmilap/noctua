@@ -489,7 +489,7 @@ class ContainerManager
     // S6 D4 — Sidecar Metrics Agent
     //
     // Patron sidecar: por cada contenedor principal levantamos un
-    // segundo contenedor (noctua/metrics-agent:1.0) que reporta CPU
+    // segundo contenedor (nnino251/metrics-agent:1.0) que reporta CPU
     // y memoria del principal a la API de Noctua via API key.
     //
     // Convencion de nombres: noctua-svc-{id}-agent. No se persiste en BD;
@@ -529,7 +529,7 @@ class ContainerManager
             $cmd[] = "TARGET_INTERNAL_PORT={$internalPort}";
         }
 
-        $cmd[] = 'noctua/metrics-agent:1.0';
+        $cmd[] = 'nnino251/metrics-agent:1.0';
 
         $this->runDockerCommand($cmd);
 

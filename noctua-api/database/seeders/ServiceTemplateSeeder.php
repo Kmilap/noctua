@@ -25,7 +25,7 @@ class ServiceTemplateSeeder extends Seeder
             [
                 'name' => 'Laravel',
                 'slug' => 'laravel',
-                'image' => 'noctua/laravel-template:1.0',
+                'image' => 'nnino251/laravel-template:1.0',
                 'internal_port' => 8000,
                 'category' => 'Backend PHP',
                 'description' => 'Aplicación Laravel lista para producción servida con PHP-FPM. Imagen mantenida por Noctua.',

@@ -417,7 +417,7 @@ class ContainerManagerTest extends TestCase
         // Buscamos el comando docker run del sidecar entre todos los ejecutados
         $sidecarCommand = null;
         foreach ($this->manager->commandsRun as $cmd) {
-            if (in_array('noctua/metrics-agent:1.0', $cmd, true)) {
+            if (in_array('nnino251/metrics-agent:1.0', $cmd, true)) {
                 $sidecarCommand = $cmd;
                 break;
             }
@@ -448,7 +448,7 @@ class ContainerManagerTest extends TestCase
         // esta vacio — un test "risky" sin asserts no protege de regresiones.
         $sidecarCommands = array_filter(
             $this->manager->commandsRun,
-            fn($cmd) => in_array('noctua/metrics-agent:1.0', $cmd, true),
+            fn($cmd) => in_array('nnino251/metrics-agent:1.0', $cmd, true),
         );
 
         $this->assertEmpty(
