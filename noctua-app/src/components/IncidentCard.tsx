@@ -36,6 +36,8 @@ type IncidentCardProps = {
   onResolve: (incident: AlertIncident) => void
   canActOnIncident?: boolean
   animationDelay?: number
+  role?: string
+  onNotify?: (incident: AlertIncident) => void
 }
 
 export default function IncidentCard({
@@ -44,6 +46,8 @@ export default function IncidentCard({
   onResolve,
   canActOnIncident = true,
   animationDelay = 0,
+  role = 'viewer',
+  onNotify,
 }: IncidentCardProps) {
   const { alert_rule, status, triggered_at, acknowledged_by, resolved_by } = incident
 
@@ -138,6 +142,20 @@ export default function IncidentCard({
           >
             {formatRelativeTime(triggered_at)}
           </p>
+
+          {/* Botón para notificar operadores */}
+          {role === 'admin' && (
+            <button
+              onClick={() => onNotify?.(incident)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-500/15 hover:bg-violet-500/25 text-violet-400 border border-violet-500/20 transition-colors duration-200"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              Notificar operadores
+            </button>
+          )}
 
           {/* Botones de accion */}
           {(showAcknowledge || showResolve) && (

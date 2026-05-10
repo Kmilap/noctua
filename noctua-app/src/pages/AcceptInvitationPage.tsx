@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import AuroraBackground from '../components/AuroraBackground'
+import axios from 'axios'
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -51,12 +52,21 @@ export default function AcceptInvitationPage() {
     setLoading(true)
     setError('')
     try {
-      // UI only — integración real pendiente de backend
-      await new Promise(r => setTimeout(r, 900))
+      const token = searchParams.get('token')
+      if (!token) { setError('Token de invitación inválido.'); setLoading(false); return }
+      await axios.post('http://localhost:8000/api/invitations/' + token + '/accept', {
+        name,
+        password,
+        password_confirmation: confirm,
+      })
       setDone(true)
       setTimeout(() => { window.location.href = '/login' }, 2000)
-    } catch {
-      setError('Error al aceptar la invitación. Intentá de nuevo.')
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        setError(err.response.data.message)
+      } else {
+        setError('Error al aceptar la invitación. El token puede haber expirado.')
+      }
     } finally {
       setLoading(false)
     }

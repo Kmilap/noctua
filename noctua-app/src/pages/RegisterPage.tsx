@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import AuroraBackground from '../components/AuroraBackground'
+import { useAuth } from '../hooks/useAuth'
 
 const steps = [
   { num: '01', label: 'Registrá tu cuenta' },
@@ -110,6 +111,7 @@ function PasswordStrength({ password }: { password: string }) {
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const { login } = useAuth()
 
   const [name, setName]               = useState('')
   const [email, setEmail]             = useState('')
@@ -129,6 +131,7 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
     try {
+      // Registrar al usuario
       await axios.post('http://localhost:8000/api/register', {
         name,
         email,
@@ -136,7 +139,11 @@ export default function RegisterPage() {
         password_confirmation: passConfirm,
         team_name: teamName || undefined,
       })
-      navigate('/login')
+
+      // Iniciar sesión de manera automática
+      
+      await login(email, password)
+      navigate('/')
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 422) {
         const errs = err.response.data.errors ?? {}

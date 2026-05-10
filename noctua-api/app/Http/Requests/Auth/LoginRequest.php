@@ -51,6 +51,15 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        // Bloquear cuentas desactivadas
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if ($user && $user->deactivated_at !== null) {
+            \Illuminate\Support\Facades\Auth::logout();
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                "email" => "deactivated",
+            ]);
+        }
     }
 
     /**

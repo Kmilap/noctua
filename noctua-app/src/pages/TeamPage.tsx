@@ -3,6 +3,7 @@ import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
+import { motion } from 'framer-motion'
 
 type TeamMember = {
   id: number
@@ -79,6 +80,70 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState('')
 
+  const [editModal, setEditModal]       = useState(false)
+  const [editMember, setEditMember]     = useState<TeamMember | null>(null)
+  const [editRole, setEditRole]         = useState<'operator' | 'viewer'>('operator')
+  const [editing, setEditing]           = useState(false)
+  const [editError, setEditError]       = useState('')
+  const [editSuccess, setEditSuccess]   = useState('')
+
+  const handleEditMember = async () => {
+    if (!editMember) return
+    setEditing(true)
+    setEditError('')
+    setEditSuccess('')
+    try {
+      await axios.patch(
+        'http://localhost:8000/api/team/members/' + editMember.id,
+        { role: editRole },
+        { headers }
+      )
+      setEditSuccess('Rol actualizado correctamente.')
+      setTeam(prev => prev ? {
+        ...prev,
+        members: prev.members?.map(m =>
+          m.id === editMember.id ? { ...m, role: editRole } : m
+        )
+      } : prev)
+      setTimeout(() => { setEditModal(false); setEditSuccess('') }, 1500)
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        setEditError(err.response.data.message)
+      } else {
+        setEditError('No se pudo actualizar el rol.')
+      }
+    } finally { setEditing(false) }
+  }
+
+  const [inviteModal, setInviteModal]   = useState(false)
+  const [inviteEmail, setInviteEmail]   = useState('')
+  const [inviteRole, setInviteRole]     = useState<'operator' | 'viewer'>('operator')
+  const [inviting, setInviting]         = useState(false)
+  const [inviteError, setInviteError]   = useState('')
+  const [inviteSuccess, setInviteSuccess] = useState('')
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) { setInviteError('El correo es requerido.'); return }
+    setInviting(true)
+    setInviteError('')
+    setInviteSuccess('')
+    try {
+      await axios.post('http://localhost:8000/api/invitations',
+        { email: inviteEmail.trim(), role: inviteRole },
+        { headers }
+      )
+      setInviteSuccess('Invitación enviada correctamente.')
+      setInviteEmail('')
+      setTimeout(() => { setInviteModal(false); setInviteSuccess('') }, 1800)
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        setInviteError(err.response.data.message)
+      } else {
+        setInviteError('No se pudo enviar la invitación.')
+      }
+    } finally { setInviting(false) }
+  }
+
   useEffect(() => {
     const fetch = async () => {
       try {
@@ -138,6 +203,7 @@ export default function TeamPage() {
               text-black font-semibold px-5 py-2.5 rounded-lg
               transition-colors duration-200 glow-amber shrink-0
             "
+            onClick={() => { setInviteModal(true); setInviteError(''); setInviteSuccess(''); setInviteEmail(''); }}
           >
             + Invitar miembro
           </button>
@@ -187,8 +253,11 @@ export default function TeamPage() {
             members.map((member, i) => {
               const cfg = roleConfig[member.role] ?? roleConfig.viewer
               return (
-                <div
+                <motion.div
                   key={member.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.06 }}
                   className={`
                     grid grid-cols-5 px-6 py-4 items-center
                     hover:bg-white/3 transition-colors duration-200
@@ -221,15 +290,20 @@ export default function TeamPage() {
 
                   {/* Acción */}
                   {role === 'admin' && (
-                    <button className="
-                      w-fit px-3 py-1.5 rounded-lg text-xs font-semibold
-                      bg-white/8 hover:bg-white/12 text-gray-300 hover:text-white
-                      border border-white/10 transition-colors duration-200
-                    ">
+                    <button
+                      onClick={() => {
+                        setEditMember(member)
+                        setEditRole(member.role === 'admin' ? 'operator' : member.role as 'operator' | 'viewer')
+                        setEditError('')
+                        setEditSuccess('')
+                        setEditModal(true)
+                      }}
+                      className="w-fit px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/8 hover:bg-white/12 text-gray-300 hover:text-white border border-white/10 transition-colors duration-200"
+                    >
                       Editar
                     </button>
                   )}
-                </div>
+                </motion.div>
               )
             })
           )}
@@ -241,8 +315,11 @@ export default function TeamPage() {
         <h2 className="text-base font-semibold text-gray-300 mb-3">Roles y permisos</h2>
         <div className="grid grid-cols-3 gap-4">
           {rolesInfo.map(r => (
-            <div
+            <motion.div
               key={r.role}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: rolesInfo.indexOf(r) * 0.1 }}
               className={`rounded-2xl border p-5 flex flex-col gap-4 ${r.color}`}
               style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(12px)' }}
             >
@@ -265,10 +342,102 @@ export default function TeamPage() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
+
+      {/* Modal de Edición */}
+      {editModal && editMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 p-6 flex flex-col gap-5" style={{ background: 'rgba(15,14,23,0.98)' }}>
+            <div className="flex items-center gap-3">
+              <MemberAvatar name={editMember.name} role={editMember.role} />
+              <div>
+                <h2 className="text-base font-bold text-white">{editMember.name}</h2>
+                <p className="text-xs text-gray-500">{editMember.email}</p>
+              </div>
+            </div>
+
+            {editError && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-2.5">{editError}</div>}
+            {editSuccess && <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-xl px-4 py-2.5">{editSuccess}</div>}
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Cambiar rol</label>
+              {editMember.role === 'admin' ? (
+                <p className="text-sm text-gray-500 bg-white/3 border border-white/8 rounded-xl px-4 py-3">No se puede cambiar el rol de un Admin.</p>
+              ) : (
+                <div className="flex gap-2">
+                  {(['operator','viewer'] as const).map(r => (
+                    <button key={r} onClick={() => setEditRole(r)}
+                      className={'flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all duration-200 ' + (editRole === r ? 'border-[color:var(--color-noctua-amber)]/40 bg-[color:var(--color-noctua-amber)]/10 text-[color:var(--color-noctua-amber)]' : 'border-white/10 bg-white/5 text-gray-400 hover:text-white')}>
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-1">
+              <button onClick={() => setEditModal(false)} disabled={editing}
+                className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50">
+                Cancelar
+              </button>
+              {editMember.role !== 'admin' && (
+                <button onClick={handleEditMember} disabled={editing}
+                  className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors duration-200 disabled:opacity-50">
+                  {editing ? 'Guardando...' : 'Guardar cambio'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Invitación */}
+      {inviteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-md rounded-2xl border border-white/10 p-6 flex flex-col gap-5" style={{ background: 'rgba(15,14,23,0.98)' }}>
+            <div>
+              <h2 className="text-lg font-bold text-white">Invitar miembro</h2>
+              <p className="text-sm text-gray-400 mt-1">El invitado recibirá un correo con el link para unirse al equipo.</p>
+            </div>
+
+            {inviteError && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-2.5">{inviteError}</div>}
+            {inviteSuccess && <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-xl px-4 py-2.5">{inviteSuccess}</div>}
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Correo electrónico</label>
+              <input type="email" placeholder="usuario@empresa.com" value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                className="w-full bg-white/5 text-white placeholder-gray-600 rounded-xl px-4 py-3 text-sm outline-none border border-white/10 focus:border-[color:var(--color-noctua-amber)]/60 transition-colors duration-200" />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Rol</label>
+              <div className="flex gap-2">
+                {(['operator','viewer'] as const).map(r => (
+                  <button key={r} onClick={() => setInviteRole(r)}
+                    className={'flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all duration-200 ' + (inviteRole === r ? 'border-[color:var(--color-noctua-amber)]/40 bg-[color:var(--color-noctua-amber)]/10 text-[color:var(--color-noctua-amber)]' : 'border-white/10 bg-white/5 text-gray-400 hover:text-white')}>
+                    {r.charAt(0).toUpperCase() + r.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-1">
+              <button onClick={() => setInviteModal(false)} disabled={inviting}
+                className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50">
+                Cancelar
+              </button>
+              <button onClick={handleInvite} disabled={inviting}
+                className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors duration-200 disabled:opacity-50">
+                {inviting ? 'Enviando...' : 'Enviar invitación'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -40,6 +40,8 @@ class AlertIncident extends Model
         'resolved_at',
         'acknowledged_by',
         'resolved_by',
+        'resolution_notes',
+        'root_cause',
     ];
 
     protected $casts = [
@@ -63,6 +65,11 @@ class AlertIncident extends Model
     public function resolvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'resolved_by');
+    }
+
+    public function tags(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(IncidentTag::class, 'alert_incident_id');
     }
 
     // ---------- Scopes (filtros reutilizables) ----------

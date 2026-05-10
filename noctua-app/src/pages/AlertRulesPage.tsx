@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
@@ -105,7 +106,7 @@ export default function AlertRulesPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -203,6 +204,6 @@ export default function AlertRulesPage() {
         rule={editingRule}
         onSuccess={handleSuccess}
       />
-    </div>
+    </motion.div>
   )
 }

@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import axios from 'axios'
 import AuroraBackground from '../components/AuroraBackground'
+import NoctuaLoader from '../components/NoctuaLoader'
 
 const features = [
   { icon: '🟡', text: 'Monitoreo en tiempo real' },
@@ -15,18 +17,40 @@ export default function LoginPage() {
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const [deactivated, setDeactivated] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendEmail] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  const handleResendReactivation = async () => {
+    setResending(true)
+    try {
+      await axios.post('http://localhost:8000/api/account/resend-reactivation', { email: resendEmail || email })
+      setError('Correo de reactivación enviado. Revisá tu bandeja.')
+      setDeactivated(false)
+    } catch {
+      setError('No se pudo enviar el correo. Intentá de nuevo.')
+    } finally { setResending(false) }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setDeactivated(false)
     try {
       await login(email, password)
-      navigate('/dashboard')
-    } catch {
-      setError('Credenciales incorrectas. Verificá tu correo y contraseña.')
+      setSuccess(true)
+      setTimeout(() => navigate('/dashboard'), 1400)
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.errors?.email?.[0] === 'deactivated') {
+        setDeactivated(true)
+      } else {
+        setError('Credenciales incorrectas. Verificá tu correo y contraseña.')
+      }
     } finally {
       setLoading(false)
     }
@@ -38,6 +62,8 @@ export default function LoginPage() {
     border border-white/10 focus:border-[color:var(--color-noctua-amber)]/60
     transition-colors duration-200 pr-10
   `
+
+  if (success) return <NoctuaLoader visible={true} />
 
   return (
     <div className="relative min-h-screen bg-[color:var(--color-noctua-bg)] flex overflow-hidden">
@@ -100,6 +126,17 @@ export default function LoginPage() {
             <p className="text-sm text-gray-400 mt-1">Ingresá tus credenciales para acceder a Noctua</p>
           </div>
 
+          {deactivated && (
+            <div className="mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm rounded-xl px-4 py-4 flex flex-col gap-3">
+              <p className="font-semibold">Tu cuenta está desactivada</p>
+              <p className="text-xs text-amber-300/70">Revisá tu correo para el link de reactivación, o solicitá uno nuevo.</p>
+              <button onClick={handleResendReactivation} disabled={resending}
+                className="w-full py-2 rounded-lg text-xs font-bold text-black bg-amber-400 hover:bg-amber-500 transition-colors disabled:opacity-50">
+                {resending ? 'Enviando...' : 'Reenviar correo de reactivación'}
+              </button>
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3">
               {error}
@@ -130,14 +167,32 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   className={inputClass}
                   required
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[color:var(--color-noctua-amber)]" />
+                <button
+                  type="button"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => setShowPassword(s => !s)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  )}
+                </button>
               </div>
               <Link
                 to="/forgot-password"

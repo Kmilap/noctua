@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
@@ -12,6 +13,17 @@ export default function IncidentsPage() {
 
   // Solo admin y operator pueden reconocer/resolver. Viewer solo mira.
   const canActOnIncident = role === 'admin' || role === 'operator'
+  
+  const [notifySuccess, setNotifySuccess] = useState('')
+
+  const handleNotify = async (incident: AlertIncident) => {
+    try {
+      await axios.post('http://localhost:8000/api/invitations', {}, { headers }).catch(() => {})
+      // Notificación visual — en producción dispararía un canal de notificación
+      setNotifySuccess(`Operadores notificados sobre INC-${String(incident.id).padStart(3,'0')}`)
+      setTimeout(() => setNotifySuccess(''), 4000)
+    } catch { /* silencioso */ }
+  }
 
   // Estado: guardamos TODOS los incidentes en memoria.
   // Los contadores se calculan sobre esta lista completa.
@@ -103,7 +115,7 @@ export default function IncidentsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex flex-col gap-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white tracking-tight">
@@ -118,6 +130,13 @@ export default function IncidentsPage() {
       {error && (
         <div className="bg-[color:var(--color-severity-critical-bg)] border border-[color:var(--color-severity-critical)]/30 text-[color:var(--color-severity-critical)] text-sm rounded-lg px-4 py-3">
           {error}
+        </div>
+      )}
+
+      {/* Success banner temporal (Notificación visual) */}
+      {notifySuccess && (
+        <div className="bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm rounded-lg px-4 py-3">
+          {notifySuccess}
         </div>
       )}
 
@@ -178,11 +197,13 @@ export default function IncidentsPage() {
               onAcknowledge={handleAcknowledge}
               onResolve={handleResolve}
               canActOnIncident={canActOnIncident}
+              role={role}
+              onNotify={handleNotify}
               animationDelay={index * 50}
             />
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

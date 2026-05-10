@@ -4,6 +4,8 @@ use App\Http\Controllers\AlertRuleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HeartbeatController;
 use App\Http\Controllers\IncidentController;
+use App\Http\Controllers\IncidentResolutionController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MetricController;
 use App\Http\Controllers\NotificationChannelController;
 use App\Http\Controllers\ServiceController;
@@ -14,54 +16,67 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SelfCheckController;
 
-// Rutas de autenticación
 require __DIR__.'/auth.php';
-// Health check público
+
 Route::get('/self-check', [SelfCheckController::class, 'index'])->middleware('throttle:30,1');
-// Rutas protegidas por Sanctum
+
+Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept']);
+
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user()->load('roles');
     });
 
     Route::post('/logout', [\App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy']);
-
     Route::get('/dashboard', [DashboardController::class, 'index']);
-
     Route::get('/services/status', [ServiceStatusController::class, 'index']);
 
-    Route::post('services/{service}/start', [ServiceController::class, 'start']);
-    Route::post('services/{service}/stop', [ServiceController::class, 'stop']);
+    Route::post('services/{service}/start',   [ServiceController::class, 'start']);
+    Route::post('services/{service}/stop',    [ServiceController::class, 'stop']);
     Route::post('services/{service}/restart', [ServiceController::class, 'restart']);
-
     Route::apiResource('services', ServiceController::class);
     Route::get('services/{service}/metrics/history', [MetricController::class, 'history']);
-    Route::get('services/{service}/metrics/summary', [MetricController::class, 'summary']);
-    // Sprint 2 — Service Templates (catálogo)
+    Route::get('services/{service}/metrics/summary',  [MetricController::class, 'summary']);
+
     Route::get('/service-templates', [ServiceTemplateController::class, 'index']);
 
     Route::get('/team', [TeamController::class, 'show']);
     Route::put('/team', [TeamController::class, 'update']);
+    Route::patch('/team/members/{user}', [TeamController::class, 'updateMember']);
 
-    // Sprint 3.1 — Alert Rules
+    Route::post('/invitations', [InvitationController::class, 'store']);
+
     Route::patch('alert-rules/{alert_rule}/toggle-active', [AlertRuleController::class, 'toggleActive']);
     Route::apiResource('alert-rules', AlertRuleController::class);
 
-    // Sprint 3.1 — Incidents
+    // Incidents — rutas específicas ANTES del apiResource
+    Route::get('incidents/resolved', [IncidentResolutionController::class, 'index']);
     Route::post('incidents/{incident}/acknowledge', [IncidentController::class, 'acknowledge']);
-    Route::post('incidents/{incident}/resolve', [IncidentController::class, 'resolve']);
-    Route::apiResource('incidents', IncidentController::class)
-        ->only(['index', 'show']);
+    Route::post('incidents/{incident}/resolve',     [IncidentController::class, 'resolve']);
+    Route::get('incidents/{incident}/resolution',   [IncidentResolutionController::class, 'show']);
+    Route::patch('incidents/{incident}/resolution', [IncidentResolutionController::class, 'update']);
+    Route::apiResource('incidents', IncidentController::class)->only(['index', 'show']);
 
-    // Sprint 3.2 — Notification Channels
     Route::patch('notification-channels/{notification_channel}/toggle-active', [NotificationChannelController::class, 'toggleActive']);
-    Route::post('notification-channels/{notification_channel}/test', [NotificationChannelController::class, 'test']);
+    Route::post('notification-channels/{notification_channel}/test',           [NotificationChannelController::class, 'test']);
     Route::apiResource('notification-channels', NotificationChannelController::class);
-
 });
 
-// Rutas protegidas por API key (ingesta) con rate limiting
 Route::middleware([\App\Http\Middleware\ApiKeyAuth::class])->group(function () {
-    Route::post('/metrics', [MetricController::class, 'store'])->middleware('throttle:60,1');
+    Route::post('/metrics',   [MetricController::class, 'store'])->middleware('throttle:60,1');
     Route::post('/heartbeat', [HeartbeatController::class, 'store'])->middleware('throttle:60,1');
+});
+
+// Gestión de cuenta
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/account/deactivate', [\App\Http\Controllers\AccountController::class, 'deactivate']);
+    Route::delete('/account', [\App\Http\Controllers\AccountController::class, 'destroy']);
+});
+Route::post('/account/reactivate', [\App\Http\Controllers\AccountController::class, 'reactivate']);
+
+Route::post('/account/resend-reactivation', [\App\Http\Controllers\AccountController::class, 'resendReactivation']);
+
+// Perfil de usuario
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::patch('/user/profile', [\App\Http\Controllers\UserProfileController::class, 'update']);
 });
