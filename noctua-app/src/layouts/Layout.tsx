@@ -1,7 +1,9 @@
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
 import AuroraBackground from '../components/AuroraBackground'
+import NoctuaLoader from '../components/NoctuaLoader'
 
 const allNavItems = [
   { label: 'Dashboard',        path: '/dashboard',   page: 'dashboard'   },
@@ -12,10 +14,29 @@ const allNavItems = [
   { label: 'Equipo',           path: '/team',        page: 'team'        },
 ]
 
+// Hook que detecta si el navegador está offline
+function useNetworkLoader() {
+  const [offline, setOffline] = useState(!navigator.onLine)
+
+  useEffect(() => {
+    const goOffline = () => setOffline(true)
+    const goOnline  = () => setOffline(false)
+    window.addEventListener('offline', goOffline)
+    window.addEventListener('online',  goOnline)
+    return () => {
+      window.removeEventListener('offline', goOffline)
+      window.removeEventListener('online',  goOnline)
+    }
+  }, [])
+
+  return offline
+}
+
 export default function Layout() {
-  const location = useLocation()
-  const { user } = useAuth()
-  const { can }  = usePermissions()
+  const location  = useLocation()
+  const { user }  = useAuth()
+  const { can }   = usePermissions()
+  const offline   = useNetworkLoader()
 
   const navItems = allNavItems.filter(item => can(item.page))
 
@@ -30,6 +51,7 @@ export default function Layout() {
   return (
     <div className="relative flex h-screen bg-[color:var(--color-noctua-bg)] text-white">
       <AuroraBackground />
+      <NoctuaLoader visible={offline} />
 
       {/* Sidebar */}
       <aside
@@ -40,7 +62,6 @@ export default function Layout() {
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         }}
       >
-        {/* Top: logo + nav */}
         <div>
           <div className="mb-8 px-2">
             <span className="text-2xl font-bold tracking-tight">
@@ -72,15 +93,14 @@ export default function Layout() {
           </nav>
         </div>
 
-        {/* Bottom: avatar clickeable → perfil */}
         <Link
           to="/profile"
           className="flex items-center gap-3 px-2 py-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/8 transition-colors duration-200"
         >
           <div className="
-            w-8 h-8 rounded-full shrink-0
+            w-9 h-9 rounded-full shrink-0
             bg-[color:var(--color-noctua-amber)]/20
-            border border-[color:var(--color-noctua-amber)]/30
+            border-2 border-[color:var(--color-noctua-amber)]/40
             flex items-center justify-center
             text-xs font-bold text-[color:var(--color-noctua-amber)]
           ">

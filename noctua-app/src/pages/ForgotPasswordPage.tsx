@@ -169,15 +169,13 @@ export default function ForgotPasswordPage() {
     setError('')
     try {
       await axios.post('http://localhost:8000/api/forgot-password', { email })
-    } catch { /* silencioso */ } finally {
-      // Genera OTP y muestra en consola para testing
-      const code = generateOtp()
-      setOtp(code)
-      console.log(`🔐 OTP para ${email}: ${code}`)
-      setLoading(false)
       setOtpInput(['', '', '', '', '', ''])
       setOtpStatus('idle')
       setStep(2)
+    } catch {
+      setError('No se pudo enviar el código. Intentá de nuevo.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -222,13 +220,14 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  const verifyOtp = (code: string) => {
-    if (code === otp) {
+  const verifyOtp = async (code: string) => {
+    try {
+      const res = await axios.post('http://localhost:8000/api/verify-otp', { email, otp: code })
+      setOtp(res.data.reset_token)
       setOtpStatus('success')
       setTimeout(() => setStep(3), 900)
-    } else {
+    } catch {
       setOtpStatus('error')
-      // Limpiar después de mostrar el error
       setTimeout(() => {
         setOtpInput(['', '', '', '', '', ''])
         setOtpStatus('idle')
@@ -237,14 +236,14 @@ export default function ForgotPasswordPage() {
     }
   }
 
-  const handleResend = () => {
+  const handleResend = async () => {
     if (!canResend) return
-    const code = generateOtp()
-    setOtp(code)
-    console.log(`🔐 OTP reenviado para ${email}: ${code}`)
+    try {
+      await axios.post('http://localhost:8000/api/forgot-password', { email })
+    } catch { /* silencioso */ }
     setOtpInput(['', '', '', '', '', ''])
     setOtpStatus('idle')
-    setStep(2) // re-trigger countdown
+    setStep(2)
   }
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -254,7 +253,12 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError('')
     try {
-      await new Promise(r => setTimeout(r, 800))
+      await axios.post('http://localhost:8000/api/reset-password', {
+        email,
+        reset_token: otp,
+        password,
+        password_confirmation: confirm,
+      })
       window.location.href = '/login'
     } catch {
       setError('Error al restablecer. Intentá de nuevo.')
