@@ -6,7 +6,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import ToggleSwitch from '../components/ToggleSwitch'
 
 export default function ProfilePage() {
-  const { token, user, login } = useAuth()
+  const { token, user } = useAuth()
   const { role } = usePermissions()
   const navigate = useNavigate()
   const headers = { Authorization: `Bearer ${token}` }
@@ -29,6 +29,11 @@ export default function ProfilePage() {
   const [saving, setSaving]   = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError]     = useState('')
+
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false)
+  const [confirmDelete, setConfirmDelete]         = useState(false)
+  const [deletePassword, setDeletePassword]       = useState('')
+  const [deleteError, setDeleteError]             = useState('')
 
   // Notificaciones (UI only por ahora — backend no tiene el endpoint)
   const [notifs, setNotifs] = useState({
@@ -78,6 +83,39 @@ export default function ProfilePage() {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     navigate('/login')
+  }
+
+  const handleDeactivate = async () => {
+    setSaving(true)
+    try {
+      await axios.post('http://localhost:8000/api/account/deactivate', {}, { headers })
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      navigate('/login')
+    } catch {
+      setError('No se pudo desactivar la cuenta.')
+    } finally { setSaving(false) }
+  }
+
+  const handleDelete = async () => {
+    if (!deletePassword) { setDeleteError('Ingresá tu contraseña.'); return }
+    setSaving(true)
+    setDeleteError('')
+    try {
+      await axios.delete('http://localhost:8000/api/account', {
+        headers,
+        data: { password: deletePassword }
+      })
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      navigate('/login')
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        setDeleteError(err.response.data.message)
+      } else {
+        setDeleteError('No se pudo eliminar la cuenta.')
+      }
+    } finally { setSaving(false) }
   }
 
   const inputClass = `
@@ -220,30 +258,56 @@ export default function ProfilePage() {
               <h2 className="text-base font-semibold text-white">Zona de peligro</h2>
               <p className="text-xs text-gray-500 mt-1">Estas acciones son irreversibles.</p>
             </div>
-            <button
-              onClick={handleLogout}
-              className="
-                w-full py-2.5 rounded-xl text-sm font-semibold
-                border border-red-500/30 text-red-400
-                hover:bg-red-500/10 transition-colors duration-200
-              "
-            >
+            
+            <button onClick={handleLogout}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors duration-200">
               Cerrar sesión
             </button>
-            <button className="
-              w-full py-2.5 rounded-xl text-sm font-bold
-              bg-red-500/15 border border-red-500/30 text-red-400
-              hover:bg-red-500/25 transition-colors duration-200
-            ">
-              Desactivar cuenta
-            </button>
-            <button className="
-              w-full py-2.5 rounded-xl text-sm font-bold
-              bg-red-600/20 border border-red-600/40 text-red-300
-              hover:bg-red-600/30 transition-colors duration-200
-            ">
-              Eliminar cuenta permanentemente
-            </button>
+
+            {!confirmDeactivate ? (
+              <button onClick={() => setConfirmDeactivate(true)}
+                className="w-full py-2.5 rounded-xl text-sm font-bold bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 transition-colors duration-200">
+                Desactivar cuenta
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-gray-400">Recibirás un correo para reactivarla cuando quieras.</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmDeactivate(false)}
+                    className="flex-1 py-2 rounded-lg text-xs font-semibold text-gray-400 bg-white/5 border border-white/10 transition-colors">
+                    Cancelar
+                  </button>
+                  <button onClick={handleDeactivate} disabled={saving}
+                    className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-red-500/80 hover:bg-red-500 transition-colors disabled:opacity-50">
+                    {saving ? 'Procesando...' : 'Confirmar'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!confirmDelete ? (
+              <button onClick={() => setConfirmDelete(true)}
+                className="w-full py-2.5 rounded-xl text-sm font-bold bg-red-600/20 border border-red-600/40 text-red-300 hover:bg-red-600/30 transition-colors duration-200">
+                Eliminar cuenta permanentemente
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <input type="password" placeholder="Confirmá tu contraseña" value={deletePassword}
+                  onChange={e => setDeletePassword(e.target.value)}
+                  className="w-full bg-white/5 text-white placeholder-gray-600 rounded-xl px-3 py-2 text-sm outline-none border border-red-500/30 focus:border-red-500/60 transition-colors" />
+                {deleteError && <p className="text-xs text-red-400">{deleteError}</p>}
+                <div className="flex gap-2">
+                  <button onClick={() => { setConfirmDelete(false); setDeletePassword(''); setDeleteError('') }}
+                    className="flex-1 py-2 rounded-lg text-xs font-semibold text-gray-400 bg-white/5 border border-white/10 transition-colors">
+                    Cancelar
+                  </button>
+                  <button onClick={handleDelete} disabled={saving}
+                    className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50">
+                    {saving ? 'Eliminando...' : 'Eliminar definitivamente'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Notificaciones */}

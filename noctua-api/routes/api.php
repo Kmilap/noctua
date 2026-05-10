@@ -66,3 +66,10 @@ Route::middleware([\App\Http\Middleware\ApiKeyAuth::class])->group(function () {
     Route::post('/metrics',   [MetricController::class, 'store'])->middleware('throttle:60,1');
     Route::post('/heartbeat', [HeartbeatController::class, 'store'])->middleware('throttle:60,1');
 });
+
+// Gestión de cuenta
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/account/deactivate', [\App\Http\Controllers\AccountController::class, 'deactivate']);
+    Route::delete('/account', [\App\Http\Controllers\AccountController::class, 'destroy']);
+});
+Route::post('/account/reactivate', [\App\Http\Controllers\AccountController::class, 'reactivate']);
