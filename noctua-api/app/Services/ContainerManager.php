@@ -80,7 +80,7 @@ class ContainerManager
         // (coherente con patrón "todo o nada" del create).
         if ($apiKeyPlain !== null) {
             try {
-                $this->runMetricsAgent($service, $containerId, $apiKeyPlain);
+                $this->runMetricsAgent($service, $containerId, $apiKeyPlain, $template->internal_port);
             } catch (\Throwable $e) {
                 $this->runDockerCommand(
                     ['docker', 'rm', '-f', $this->buildContainerName($service)],
@@ -238,7 +238,7 @@ class ContainerManager
      * Devuelve uno de: 'running', 'stopped', 'starting', 'error', 'removing', 'missing', null.
      *
      * - 'missing' significa que el contenedor existió en BD (container_id no es null)
-     *   pero ya no existe en Docker (fue eliminado por fuera de Noctua).
+     * pero ya no existe en Docker (fue eliminado por fuera de Noctua).
      * - null significa que el servicio nunca tuvo contenedor (container_id es null).
      *
      * Útil para sincronización: el estado en BD puede estar desactualizado
@@ -456,7 +456,7 @@ class ContainerManager
      *
      * @param array $command       Argumentos del comando (no se pasan a un shell, evita inyección)
      * @param bool  $allowFailure  Si true, no lanza excepción cuando el comando falla.
-     *                             En ese caso se loguea un warning para dejar rastro.
+     * En ese caso se loguea un warning para dejar rastro.
      */
     protected function runDockerCommand(array $command, bool $allowFailure = false): string
     {
@@ -505,12 +505,13 @@ class ContainerManager
         Service $service,
         string $mainContainerId,
         string $apiKeyPlain,
+        ?int $internalPort = null,
     ): string {
         $agentName = $this->buildAgentName($service);
         $networkName = config('noctua.docker_network');
         $apiUrl = config('noctua.internal_api_url');
 
-        $this->runDockerCommand([
+        $cmd = [
             'docker', 'run', '-d',
             '--name', $agentName,
             '--network', $networkName,
@@ -520,8 +521,17 @@ class ContainerManager
             '-e', "NOCTUA_API_KEY={$apiKeyPlain}",
             '-e', "TARGET_CONTAINER={$mainContainerId}",
             '-e', 'REPORT_INTERVAL_SEC=30',
-            'noctua/metrics-agent:1.0',
-        ]);
+        ];
+
+        // Inyectar puerto interno para health check HTTP
+        if ($internalPort !== null) {
+            $cmd[] = '-e';
+            $cmd[] = "TARGET_INTERNAL_PORT={$internalPort}";
+        }
+
+        $cmd[] = 'noctua/metrics-agent:1.0';
+
+        $this->runDockerCommand($cmd);
 
         Log::info("ContainerManager: sidecar metrics-agent levantado", [
             'service_id' => $service->id,
