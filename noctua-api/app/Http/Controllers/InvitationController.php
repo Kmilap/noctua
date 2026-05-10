@@ -40,22 +40,25 @@ class InvitationController extends Controller
         ]);
 
         $acceptUrl = config('app.frontend_url', 'http://localhost:5173')
-            . '/accept-invitation?token=' . $token;
+            . '/accept-invitation?token=' . $token
+            . '&email=' . urlencode($invitation->email)
+            . '&role=' . $invitation->role
+            . '&team=' . urlencode($invitation->team->name ?? 'Noctua');
 
         Mail::to($request->email)->send(new InvitationMail($invitation, $acceptUrl));
 
         return response()->json(['message' => 'Invitación enviada correctamente.'], 201);
     }
 
-    public function accept(Request $request): JsonResponse
+    public function accept(Request $request, string $token = ''): JsonResponse
     {
         $request->validate([
-            'token'    => ['required', 'string'],
+
             'name'     => ['required', 'string', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $invitation = Invitation::where('token', $request->token)
+        $invitation = Invitation::where('token', $token)
             ->whereNull('accepted_at')
             ->where('expires_at', '>', now())
             ->firstOrFail();
@@ -68,7 +71,7 @@ class InvitationController extends Controller
         ]);
 
         // Asignar al equipo con rol
-        $invitation->team->users()->attach($user->id);
+        $user->team_id = $invitation->team_id; $user->save();
         $user->syncRoles([$invitation->role]);
 
         $invitation->update(['accepted_at' => now()]);
