@@ -72,7 +72,7 @@ export default function ServicesPage() {
 
   const canCreate           = role === 'admin' || role === 'operator'
   const canManageContainers = role === 'admin' || role === 'operator'
-  const canCreateTemplate   = role === 'admin'
+  const canCreateTemplate   = role === 'admin' || role === 'operator'
 
   const [services, setServices]   = useState<Service[]>([])
   const [filtered, setFiltered]   = useState<Service[]>([])

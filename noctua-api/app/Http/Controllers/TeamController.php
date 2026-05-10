@@ -19,7 +19,7 @@ class TeamController extends Controller
                 "name"            => $user->name,
                 "email"           => $user->email,
                 "role"            => $user->roles->first()?->name ?? "viewer",
-                "last_login_at"   => null,
+                "last_login_at"   => $user->last_login_at?->toISOString(),
                 "incidents_count" => 0,
             ];
         });
