@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import AuroraBackground from '../components/AuroraBackground'
+import NoctuaLoader from '../components/NoctuaLoader'
 
 const features = [
   { icon: '🟡', text: 'Monitoreo en tiempo real' },
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const [success, setSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,7 +27,8 @@ export default function LoginPage() {
     setError('')
     try {
       await login(email, password)
-      navigate('/dashboard')
+      setSuccess(true)
+      setTimeout(() => navigate('/dashboard'), 1400)
     } catch {
       setError('Credenciales incorrectas. Verificá tu correo y contraseña.')
     } finally {
@@ -39,6 +42,8 @@ export default function LoginPage() {
     border border-white/10 focus:border-[color:var(--color-noctua-amber)]/60
     transition-colors duration-200 pr-10
   `
+
+  if (success) return <NoctuaLoader visible={true} />
 
   return (
     <div className="relative min-h-screen bg-[color:var(--color-noctua-bg)] flex overflow-hidden">
