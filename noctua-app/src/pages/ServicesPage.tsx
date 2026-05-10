@@ -3,6 +3,7 @@ import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
 import Modal from '../components/Modal'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Code2, Newspaper, Database, Zap, Wrench, Globe, Workflow,
   Play, Square, RotateCcw, ExternalLink
@@ -320,12 +321,18 @@ export default function ServicesPage() {
             const portLabel = svc.host_port ? "localhost:" + String(svc.host_port) : ""
 
             return (
-              <div key={svc.id} className="
-                rounded-2xl px-6 py-5 flex flex-col gap-4
-                border border-white/8 hover:border-white/15
-                transition-all duration-300 animate-list-item-enter
-              " style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)' }}>
-
+              <motion.div 
+                key={svc.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: filtered.indexOf(svc) * 0.05 }}
+                className="
+                  rounded-2xl px-6 py-5 flex flex-col gap-4
+                  border border-white/8 hover:border-white/15
+                  transition-all duration-300
+                " 
+                style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)' }}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
                     {tpl ? (
@@ -345,12 +352,21 @@ export default function ServicesPage() {
                     <span className={'px-2.5 py-0.5 rounded-md text-xs font-semibold border ' + cfg.badge}>
                       {cfg.label}
                     </span>
-                    {csCfg && (
-                      <span className={'flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ' + csCfg.badge}>
-                        <span className={'w-1.5 h-1.5 rounded-full ' + csCfg.dot} />
-                        {csCfg.label}
-                      </span>
-                    )}
+                    <AnimatePresence mode="wait">
+                      {csCfg && (
+                        <motion.span
+                          key={svc.container_status}
+                          initial={{ opacity: 0, scale: 0.8, y: -4 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.8, y: 4 }}
+                          transition={{ duration: 0.25, ease: 'easeOut' }}
+                          className={'flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ' + csCfg.badge}
+                        >
+                          <span className={'w-1.5 h-1.5 rounded-full ' + csCfg.dot} />
+                          {csCfg.label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
@@ -409,7 +425,7 @@ export default function ServicesPage() {
                   </div>
                 )}
 
-              </div>
+              </motion.div>
             )
           })}
         </div>
