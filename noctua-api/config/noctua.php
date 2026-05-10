@@ -48,4 +48,17 @@ return [
     */
     'resource_prefix' => env('NOCTUA_RESOURCE_PREFIX', 'noctua-svc'),
 
+    /*
+    | Host accesible desde el contenedor de la API para alcanzar los
+    | servicios provisionados (su URL autogenerada usa este host).
+    |
+    | - localhost: default seguro. Sirve si Noctua y los servicios
+    |   provisionados corren en el mismo host (caso Hetzner/producción).
+    | - host.docker.internal: WSL2 o macOS, donde el contenedor de la
+    |   API necesita el alias para alcanzar los puertos del host.
+    | - 172.17.0.1 (gateway de la bridge default): Linux nativo si por
+    |   alguna razón el alias host.docker.internal no resuelve.
+    */
+    'health_check_host' => env('NOCTUA_HEALTH_CHECK_HOST', 'localhost'),
+
 ];

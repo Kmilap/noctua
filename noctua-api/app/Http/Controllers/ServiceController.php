@@ -74,7 +74,7 @@ class ServiceController extends Controller
                     'name'         => $request->name,
                     // URL autogenerada en dev. En S7 cambia a dominio público
                     // con reverse proxy: https://{slug}-{id}.{domain}.
-                    'url' => "http://host.docker.internal:{$hostPort}",
+                    'url'          => 'http://' . config('noctua.health_check_host') . ":{$hostPort}",
                     'api_key_hash' => hash('sha256', $plainKey),
                     'status'       => 'unknown',
                     'template_id'  => (int) $request->template_id,

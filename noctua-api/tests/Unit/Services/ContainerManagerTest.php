@@ -541,11 +541,12 @@ class TestableContainerManager extends ContainerManager
         Service $service,
         string $mainContainerId,
         string $apiKeyPlain,
+        ?int $internalPort = null,
     ): string {
         if ($this->failOnRunMetricsAgent) {
             throw new RuntimeException('Simulated metrics-agent failure');
         }
-        return parent::runMetricsAgent($service, $mainContainerId, $apiKeyPlain);
+        return parent::runMetricsAgent($service, $mainContainerId, $apiKeyPlain, $internalPort);
     }
 
     protected function runDockerContainer(DockerContainer $container): DockerContainerInstance

@@ -32,5 +32,10 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+
+        <!-- Noctua: tests usan localhost para que asserts sobre URLs sean
+             reproducibles en cualquier entorno (Linux nativo, WSL2, macOS).
+             En .env de cada developer puede ser host.docker.internal o lo que sea. -->
+        <env name="NOCTUA_HEALTH_CHECK_HOST" value="localhost"/>
     </php>
 </phpunit>
