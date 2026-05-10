@@ -73,3 +73,5 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/account', [\App\Http\Controllers\AccountController::class, 'destroy']);
 });
 Route::post('/account/reactivate', [\App\Http\Controllers\AccountController::class, 'reactivate']);
+
+Route::post('/account/resend-reactivation', [\App\Http\Controllers\AccountController::class, 'resendReactivation']);

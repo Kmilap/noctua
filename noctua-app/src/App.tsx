@@ -14,6 +14,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import TeamPage from './pages/TeamPage'
 import AcceptInvitationPage from './pages/AcceptInvitationPage'
 import ActivityPage from "./pages/ActivityPage"
+import ReactivatePage from './pages/ReactivatePage'
 import SettingsPage from './pages/SettingsPage'
 import HistorialPage from "./pages/HistorialPage"
 import ServiceDetailPage from './pages/ServiceDetailPage'
@@ -30,6 +31,7 @@ function App() {
       <Routes>
         <Route path="/login"             element={<LoginPage />} />
         <Route path="/register"          element={<RegisterPage />} />
+        <Route path="/reactivate" element={<ReactivatePage />} />
         <Route path="/accept-invitation" element={<AcceptInvitationPage />} />
         <Route path="/forgot-password"   element={<ForgotPasswordPage />} />
         <Route

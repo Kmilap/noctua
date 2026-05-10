@@ -52,6 +52,22 @@ class AccountController extends Controller
         return response()->json(["message" => "Cuenta reactivada. Ya podes iniciar sesion."]);
     }
 
+    // POST /api/account/resend-reactivation
+    public function resendReactivation(Request $request): JsonResponse
+    {
+        $request->validate(["email" => ["required","email"]]);
+        $user = \App\Models\User::where("email", $request->email)
+            ->whereNotNull("deactivated_at")->first();
+        if ($user) {
+            $token = \Illuminate\Support\Str::random(64);
+            \Illuminate\Support\Facades\Cache::put("reactivate:" . $user->email, $token, now()->addHours(24));
+            $reactivateUrl = config("app.frontend_url","http://localhost:5173")
+                . "/reactivate?token=" . $token . "&email=" . urlencode($user->email);
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\ReactivationMail($user, $reactivateUrl));
+        }
+        return response()->json(["message" => "Si el correo existe y esta desactivado, recibiras el link."]);
+    }
+
     // DELETE /api/account
     public function destroy(Request $request): JsonResponse
     {

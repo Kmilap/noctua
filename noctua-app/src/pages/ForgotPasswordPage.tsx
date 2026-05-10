@@ -127,10 +127,6 @@ const stepLabels: Record<Step, string> = {
   3: 'Creá tu nueva contraseña',
 }
 
-// Genera código OTP de 6 dígitos
-function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
 
 export default function ForgotPasswordPage() {
   const [step, setStep]         = useState<Step>(1)

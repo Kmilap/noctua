@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import axios from 'axios'
 import AuroraBackground from '../components/AuroraBackground'
 import NoctuaLoader from '../components/NoctuaLoader'
 
@@ -19,18 +20,37 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const [deactivated, setDeactivated] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendEmail] = useState('')
   const [success, setSuccess] = useState(false)
+
+  const handleResendReactivation = async () => {
+    setResending(true)
+    try {
+      await axios.post('http://localhost:8000/api/account/resend-reactivation', { email: resendEmail || email })
+      setError('Correo de reactivación enviado. Revisá tu bandeja.')
+      setDeactivated(false)
+    } catch {
+      setError('No se pudo enviar el correo. Intentá de nuevo.')
+    } finally { setResending(false) }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setDeactivated(false)
     try {
       await login(email, password)
       setSuccess(true)
       setTimeout(() => navigate('/dashboard'), 1400)
-    } catch {
-      setError('Credenciales incorrectas. Verificá tu correo y contraseña.')
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.data?.errors?.email?.[0] === 'deactivated') {
+        setDeactivated(true)
+      } else {
+        setError('Credenciales incorrectas. Verificá tu correo y contraseña.')
+      }
     } finally {
       setLoading(false)
     }
@@ -105,6 +125,17 @@ export default function LoginPage() {
             <h2 className="text-2xl font-bold text-white tracking-tight">Iniciar sesión</h2>
             <p className="text-sm text-gray-400 mt-1">Ingresá tus credenciales para acceder a Noctua</p>
           </div>
+
+          {deactivated && (
+            <div className="mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm rounded-xl px-4 py-4 flex flex-col gap-3">
+              <p className="font-semibold">Tu cuenta está desactivada</p>
+              <p className="text-xs text-amber-300/70">Revisá tu correo para el link de reactivación, o solicitá uno nuevo.</p>
+              <button onClick={handleResendReactivation} disabled={resending}
+                className="w-full py-2 rounded-lg text-xs font-bold text-black bg-amber-400 hover:bg-amber-500 transition-colors disabled:opacity-50">
+                {resending ? 'Enviando...' : 'Reenviar correo de reactivación'}
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3">
