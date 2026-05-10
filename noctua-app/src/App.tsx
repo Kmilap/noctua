@@ -13,6 +13,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import TeamPage from './pages/TeamPage'
 import AcceptInvitationPage from './pages/AcceptInvitationPage'
+import ServiceDetailPage from './pages/ServiceDetailPage'
 
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -36,13 +37,14 @@ function App() {
           }
         >
           <Route index element={<Navigate to="/dashboard" />} />
-          <Route path="dashboard"   element={<ProtectedRoute page="dashboard"><DashboardPage /></ProtectedRoute>} />
-          <Route path="services"    element={<ProtectedRoute page="services"><ServicesPage /></ProtectedRoute>} />
-          <Route path="alert-rules" element={<ProtectedRoute page="alert-rules"><AlertRulesPage /></ProtectedRoute>} />
-          <Route path="incidents"   element={<ProtectedRoute page="incidents"><IncidentsPage /></ProtectedRoute>} />
-          <Route path="channels"    element={<ProtectedRoute page="channels"><ChannelsPage /></ProtectedRoute>} />
-          <Route path="team"        element={<ProtectedRoute page="team"><TeamPage /></ProtectedRoute>} />
-          <Route path="profile"     element={<ProfilePage />} />
+          <Route path="dashboard"      element={<ProtectedRoute page="dashboard"><DashboardPage /></ProtectedRoute>} />
+          <Route path="services"       element={<ProtectedRoute page="services"><ServicesPage /></ProtectedRoute>} />
+          <Route path="services/:id"   element={<ProtectedRoute page="services"><ServiceDetailPage /></ProtectedRoute>} />
+          <Route path="alert-rules"    element={<ProtectedRoute page="alert-rules"><AlertRulesPage /></ProtectedRoute>} />
+          <Route path="incidents"      element={<ProtectedRoute page="incidents"><IncidentsPage /></ProtectedRoute>} />
+          <Route path="channels"       element={<ProtectedRoute page="channels"><ChannelsPage /></ProtectedRoute>} />
+          <Route path="team"           element={<ProtectedRoute page="team"><TeamPage /></ProtectedRoute>} />
+          <Route path="profile"        element={<ProfilePage />} />
         </Route>
       </Routes>
     </BrowserRouter>
