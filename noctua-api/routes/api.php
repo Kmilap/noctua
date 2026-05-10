@@ -68,3 +68,8 @@ Route::middleware([\App\Http\Middleware\ApiKeyAuth::class])->group(function () {
     Route::post('/metrics',   [MetricController::class, 'store'])->middleware('throttle:60,1');
     Route::post('/heartbeat', [HeartbeatController::class, 'store'])->middleware('throttle:60,1');
 });
+
+// Gestión de miembros del equipo
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::patch('/team/members/{user}', [\App\Http\Controllers\TeamController::class, 'updateMember']);
+});
