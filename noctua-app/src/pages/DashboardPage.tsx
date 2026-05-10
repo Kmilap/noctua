@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -184,7 +185,7 @@ export default function DashboardPage() {
   ] : []
 
   return (
-    <div className="flex flex-col gap-8">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex flex-col gap-8">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
@@ -287,6 +288,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

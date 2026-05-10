@@ -3,6 +3,7 @@ import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
+import { motion } from 'framer-motion'
 
 type TeamMember = {
   id: number
@@ -252,8 +253,11 @@ export default function TeamPage() {
             members.map((member, i) => {
               const cfg = roleConfig[member.role] ?? roleConfig.viewer
               return (
-                <div
+                <motion.div
                   key={member.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.25, delay: i * 0.06 }}
                   className={`
                     grid grid-cols-5 px-6 py-4 items-center
                     hover:bg-white/3 transition-colors duration-200
@@ -299,7 +303,7 @@ export default function TeamPage() {
                       Editar
                     </button>
                   )}
-                </div>
+                </motion.div>
               )
             })
           )}
@@ -311,8 +315,11 @@ export default function TeamPage() {
         <h2 className="text-base font-semibold text-gray-300 mb-3">Roles y permisos</h2>
         <div className="grid grid-cols-3 gap-4">
           {rolesInfo.map(r => (
-            <div
+            <motion.div
               key={r.role}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: rolesInfo.indexOf(r) * 0.1 }}
               className={`rounded-2xl border p-5 flex flex-col gap-4 ${r.color}`}
               style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(12px)' }}
             >
@@ -335,7 +342,7 @@ export default function TeamPage() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

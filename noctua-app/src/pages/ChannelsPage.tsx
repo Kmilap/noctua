@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
 import Modal from '../components/Modal'
 import ToggleSwitch from '../components/ToggleSwitch'
+import { motion } from 'framer-motion'
 
 type ChannelType = 'email' | 'slack' | 'sms'
 
@@ -219,15 +220,18 @@ export default function ChannelsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
-          {channels.map(ch => {
+          {channels.map((ch, index) => {
             const cfg = typeConfig[ch.type] ?? typeConfig.email
             return (
-              <div
+              <motion.div
                 key={ch.id}
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.25, delay: index * 0.07 }}
                 className="
                   rounded-2xl px-6 py-5 flex flex-col gap-4
                   border border-white/8 hover:border-white/15
-                  transition-all duration-300 animate-list-item-enter
+                  transition-all duration-300
                 "
                 style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)' }}
               >
@@ -279,7 +283,7 @@ export default function ChannelsPage() {
                     </button>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )
           })}
         </div>
