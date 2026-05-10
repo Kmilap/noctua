@@ -14,6 +14,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import TeamPage from './pages/TeamPage'
 import AcceptInvitationPage from './pages/AcceptInvitationPage'
 import ActivityPage from "./pages/ActivityPage"
+import SettingsPage from './pages/SettingsPage'
 import HistorialPage from "./pages/HistorialPage"
 import ServiceDetailPage from './pages/ServiceDetailPage'
 
@@ -49,6 +50,7 @@ function App() {
           <Route path="incidents"      element={<ProtectedRoute page="incidents"><IncidentsPage /></ProtectedRoute>} />
           <Route path="channels"       element={<ProtectedRoute page="channels"><ChannelsPage /></ProtectedRoute>} />
           <Route path="team"           element={<ProtectedRoute page="team"><TeamPage /></ProtectedRoute>} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="profile"        element={<ProfilePage />} />
         </Route>
       </Routes>
