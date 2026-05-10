@@ -29,9 +29,9 @@ export default function AcceptInvitationPage() {
 
   // En producción estos datos vendrían del token de la URL
   // Por ahora los leemos de query params o usamos defaults para demo
-  const emailFromUrl = searchParams.get('email') ?? 'nmendez@unab.edu.co'
-  const nameFromUrl  = searchParams.get('name')  ?? 'Noel Santiago Méndez Jaimes'
-  const teamFromUrl  = searchParams.get('team')  ?? 'Noctua Dev Team'
+  const emailFromUrl = searchParams.get('email') ?? ''
+  const nameFromUrl  = searchParams.get('name')  ?? ''
+  const teamFromUrl  = searchParams.get('team')  ?? 'Noctua'
   const roleFromUrl  = (searchParams.get('role') ?? 'operator') as keyof typeof roleConfig
 
   const [name, setName]         = useState(nameFromUrl)
