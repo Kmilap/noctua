@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Noctua Metrics Agent — reportador de CPU, memoria y HTTP health check.
+# Noctua Metrics Agent — reportador de CPU, memoria, response_time y HTTP health check.
 #
 # Variables de entorno requeridas:
 #   NOCTUA_API_URL       URL base de la API de Noctua
@@ -74,9 +74,29 @@ post_heartbeat() {
     fi
 }
 
+# Toma dos snapshots de /stats?stream=false con 1s de separación y los fusiona,
+# usando el cpu_stats del primero como precpu_stats del segundo.
+#
+# Por qué: cuando se llama con stream=false, Docker devuelve precpu_stats
+# idéntico a cpu_stats en el mismo snapshot, lo que hace que el delta de CPU
+# siempre dé 0. Tomando dos snapshots separados sí hay delta real.
 fetch_stats() {
-    curl -s --unix-socket "${DOCKER_SOCK}" \
-        "http://localhost/containers/${TARGET_CONTAINER}/stats?stream=false"
+    local snap1 snap2
+    snap1=$(curl -s --unix-socket "${DOCKER_SOCK}" \
+        "http://localhost/containers/${TARGET_CONTAINER}/stats?stream=false")
+    sleep 1
+    snap2=$(curl -s --unix-socket "${DOCKER_SOCK}" \
+        "http://localhost/containers/${TARGET_CONTAINER}/stats?stream=false")
+
+    # Validación: si alguno vino vacío o sin cpu_stats, retorna vacío
+    if [ -z "$snap1" ] || [ -z "$snap2" ]; then
+        return 1
+    fi
+
+    # Inyecta cpu_stats del snap1 como precpu_stats del snap2.
+    # El resto del cálculo de cpu_pct funciona sin cambios sobre el resultado.
+    jq -nc --argjson s1 "$snap1" --argjson s2 "$snap2" \
+        '$s2 | .precpu_stats = $s1.cpu_stats' 2>/dev/null
 }
 
 http_health_check() {
@@ -108,6 +128,11 @@ http_health_check() {
     # Convertir 0 (curl error) a status_code 0 para el heartbeat
     local numeric_code=${http_code:-0}
     post_heartbeat "$numeric_code" "$elapsed_ms"
+
+    # También reportamos response_time como métrica pública para que el aggregator
+    # pueda calcular P95/P99/request_rate y para que el dashboard tenga histórico.
+    # La unidad "ms" coincide con el rango validado en StoreMetricRequest (0-60000).
+    post_metric "response_time" "$elapsed_ms" "ms"
 }
 
 while true; do
@@ -145,5 +170,7 @@ while true; do
         http_health_check
     fi
 
-    sleep "$INTERVAL"
+    # fetch_stats ya consumió 1s del intervalo (sleep entre snapshots),
+    # así que dormimos INTERVAL - 1 para mantener la cadencia real.
+    sleep $((INTERVAL > 1 ? INTERVAL - 1 : 1))
 done
