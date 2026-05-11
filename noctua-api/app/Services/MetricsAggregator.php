@@ -42,24 +42,44 @@ class MetricsAggregator
 
     private function calculateLatencyAndTraffic(int $serviceId, Carbon $bucket, Carbon $bucketEnd): array
     {
-        $row = DB::table('metrics')
+        // P95 y P99 se calculan sobre el bucket cerrado de 1 minuto: queremos
+        // que los percentiles reflejen lo que pasó EN ese minuto específico.
+        $percentilesRow = DB::table('metrics')
             ->where('service_id', $serviceId)
             ->where('metric_name', 'response_time')
             ->where('recorded_at', '>=', $bucket)
             ->where('recorded_at', '<', $bucketEnd)
-            ->selectRaw('COUNT(*) as request_count, PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY value) as p95, PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY value) as p99')
+            ->selectRaw('
+                COUNT(*) as request_count,
+                PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY value) as p95,
+                PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY value) as p99
+            ')
             ->first();
 
-        $count = (int) ($row->request_count ?? 0);
+        $bucketCount = (int) ($percentilesRow->request_count ?? 0);
+
+        // request_rate usa ventana móvil de 5 minutos para suavizar el ruido
+        // del boundary del bucket (heartbeats cada 30s pueden caer 1 o 2 veces
+        // en un bucket de 1 min, generando saltos 1.0 ↔ 2.0). Promedio sobre
+        // 5 min da ~2.0 estable. Esto es el patrón estándar en Datadog/Prometheus.
+        $rateWindowStart = $bucketEnd->copy()->subMinutes(5);
+
+        $windowCount = DB::table('metrics')
+            ->where('service_id', $serviceId)
+            ->where('metric_name', 'response_time')
+            ->where('recorded_at', '>=', $rateWindowStart)
+            ->where('recorded_at', '<', $bucketEnd)
+            ->count();
+
+        $requestRate = round($windowCount / 5.0, 2);
 
         return [
-            'request_rate' => (float) $count,
-            'p95'          => $row && $count > 0 ? round((float) $row->p95, 2) : null,
-            'p99'          => $row && $count > 0 ? round((float) $row->p99, 2) : null,
+            'request_rate' => $requestRate,
+            'p95'          => $percentilesRow && $bucketCount > 0 ? round((float) $percentilesRow->p95, 2) : null,
+            'p99'          => $percentilesRow && $bucketCount > 0 ? round((float) $percentilesRow->p99, 2) : null,
         ];
     }
-
-    private function calculateErrorRate(int $serviceId, Carbon $bucket, Carbon $bucketEnd): ?float
+        private function calculateErrorRate(int $serviceId, Carbon $bucket, Carbon $bucketEnd): ?float
     {
         $row = DB::table('heartbeats')
             ->where('service_id', $serviceId)

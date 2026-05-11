@@ -406,7 +406,10 @@ class ContainerManager
         $container = DockerContainer::create($template->image)
             ->name($this->buildContainerName($service))
             ->doNotCleanUpAfterExit()
-            ->mapPort($service->host_port, $template->internal_port);
+            ->mapPort($service->host_port, $template->internal_port)
+            ->setLabel('noctua.kind', 'template-service')
+            ->setLabel('noctua.service_id', (string) $service->id)
+            ->setLabel('noctua.internal_port', (string) $template->internal_port);
 
         foreach ($env as $key => $value) {
             $container = $container->setEnvironmentVariable($key, (string) $value);
