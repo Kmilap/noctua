@@ -21,3 +21,6 @@ Thumbs.db
 *.bak
 *.tmp
 *~
+scripts/.venv/
+scripts/simulator.py.bak*
+scripts/simulator.py.before-outage-fix
