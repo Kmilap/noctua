@@ -20,32 +20,40 @@ class IncidentTriggeredNotification extends Notification
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
-    {
-        $incident = $this->incident->loadMissing(['alertRule.service']);
-        $rule     = $incident->alertRule;
-        $service  = $rule?->service;
+public function toMail(object $notifiable): MailMessage
+{
+    $incident = $this->incident->loadMissing(['alertRule.service']);
+    $rule     = $incident->alertRule;
+    $service  = $rule?->service;
 
-        $severity    = strtoupper($rule->severity ?? 'warning');
-        $serviceName = $service->name ?? 'Servicio desconocido';
-        $metric      = $rule->metric_name ?? 'N/A';
-        $operator    = $rule->operator ?? '';
-        $threshold   = $rule->threshold ?? '';
-        $triggeredAt = $incident->triggered_at?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s');
+    $severity    = strtoupper($rule->severity ?? 'warning');
+    $serviceName = $service->name ?? 'Servicio desconocido';
+    $metric      = $rule->metric_name ?? 'N/A';
+    $operator    = $rule->operator ?? '';
+    $threshold   = $rule->threshold ?? '';
+    $triggeredAt = $incident->triggered_at?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s');
 
-        $ruleDescription = "{$metric} {$operator} {$threshold}";
+    $ruleDescription = trim("{$metric} {$operator} {$threshold}");
 
-        return (new MailMessage)
-            ->subject("[Noctua] [{$severity}] Incidente en {$serviceName}")
-            ->greeting("Alerta disparada: {$ruleDescription}")
-            ->line("Se ha disparado un incidente en el servicio **{$serviceName}**.")
-            ->line("**Condición violada:** {$ruleDescription}")
-            ->line("**Severidad:** {$severity}")
-            ->line("**Disparado en:** {$triggeredAt}")
-            ->line("ID del incidente: #{$incident->id}")
-            ->line('Revisa el panel de Noctua para más detalles y tomar acción sobre este incidente.')
-            ->salutation('— Noctua Monitor');
-    }
+    // URL al detalle del incidente en el frontend.
+    // Mismo patrón que welcome.blade.php: config con fallback a env.
+    $frontendUrl = rtrim(
+        config('app.frontend_url', env('FRONTEND_URL', '/')),
+        '/'
+    );
+    $incidentUrl = "{$frontendUrl}/incidents/{$incident->id}";
+
+    return (new MailMessage)
+        ->subject("[Noctua] [{$severity}] Incidente en {$serviceName}")
+        ->view('emails.incident-triggered', [
+            'serviceName'     => $serviceName,
+            'severity'        => $severity,
+            'ruleDescription' => $ruleDescription,
+            'triggeredAt'     => $triggeredAt,
+            'incidentId'      => $incident->id,
+            'incidentUrl'     => $incidentUrl,
+        ]);
+}
 
     public function toArray(object $notifiable): array
     {
