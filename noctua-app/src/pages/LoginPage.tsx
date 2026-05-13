@@ -44,7 +44,7 @@ export default function LoginPage() {
     try {
       await login(email, password)
       setSuccess(true)
-      setTimeout(() => navigate('/dashboard'), 1400)
+      setTimeout(() => navigate('/app/dashboard'), 1400)
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.data?.errors?.email?.[0] === 'deactivated') {
         setDeactivated(true)
