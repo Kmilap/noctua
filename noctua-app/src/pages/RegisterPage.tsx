@@ -231,7 +231,12 @@ export default function RegisterPage() {
       >
         <div
           className="w-full max-w-lg rounded-3xl p-8 border border-white/10"
-          style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px)' }}
+          style={{
+            background:           'rgba(255,255,255,0.05)',
+            backdropFilter:       'blur(24px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            boxShadow:            '0 4px 24px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.07)',
+          }}
         >
           <div className="mb-7">
             <h2 className="text-2xl font-bold text-white tracking-tight">{t('register.title')}</h2>
