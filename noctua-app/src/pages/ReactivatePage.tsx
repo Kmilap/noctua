@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import AuroraBackground from '../components/AuroraBackground'
 import NoctuaLoader from '../components/NoctuaLoader'
@@ -8,6 +9,7 @@ export default function ReactivatePage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') ?? ''
   const email = searchParams.get('email') ?? ''
+  const { t } = useTranslation()
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
@@ -15,27 +17,27 @@ export default function ReactivatePage() {
   useEffect(() => {
     if (!token || !email) {
       setStatus('error')
-      setMessage('Link de reactivación inválido.')
+      setMessage(t('reactivate.invalid_link'))
       return
     }
 
     axios.post('http://localhost:8000/api/account/reactivate', { token, email })
       .then(() => {
         setStatus('success')
-        setMessage('¡Tu cuenta fue reactivada exitosamente!')
+        setMessage(t('reactivate.success_msg'))
       })
       .catch(err => {
         const msg = axios.isAxiosError(err) && err.response?.data?.message
           ? err.response.data.message : ''
         if (msg.includes('invalido') || msg.includes('expirado')) {
-          // Verificar si ya está activa
           setStatus('success')
-          setMessage('Tu cuenta ya está activa. Podés iniciar sesión.')
+          setMessage(t('reactivate.already_active'))
         } else {
           setStatus('error')
-          setMessage(msg || 'El link expiró. Solicitá uno nuevo desde el login.')
+          setMessage(msg || t('reactivate.expired_link'))
         }
       })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, email])
 
   if (status === 'loading') return <NoctuaLoader visible={true} />
@@ -72,14 +74,14 @@ export default function ReactivatePage() {
 
           <div>
             <h2 className="text-xl font-bold text-white">
-              {status === 'success' ? '¡Cuenta reactivada!' : 'No se pudo reactivar'}
+              {status === 'success' ? t('reactivate.success_title') : t('reactivate.error_title')}
             </h2>
             <p className="text-sm text-gray-400 mt-2">{message}</p>
           </div>
 
           <Link to="/login"
             className="w-full py-3.5 rounded-xl text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors duration-200 text-center">
-            {status === 'success' ? 'Ir al inicio de sesión' : 'Volver al login'}
+            {status === 'success' ? t('reactivate.go_to_login') : t('reactivate.back_to_login')}
           </Link>
         </div>
       </div>

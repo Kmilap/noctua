@@ -1,14 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import AuroraBackground from '../components/AuroraBackground'
 import { useAuth } from '../hooks/useAuth'
-
-const steps = [
-  { num: '01', label: 'Registra tu cuenta' },
-  { num: '02', label: 'Agrega tus servicios' },
-  { num: '03', label: 'Configura tus alertas' },
-]
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -77,6 +72,7 @@ function PasswordField({
 }
 
 function PasswordStrength({ password }: { password: string }) {
+  const { t } = useTranslation()
   const checks = [
     password.length >= 8,
     /[A-Z]/.test(password),
@@ -84,7 +80,7 @@ function PasswordStrength({ password }: { password: string }) {
     /[^A-Za-z0-9]/.test(password),
   ]
   const score = checks.filter(Boolean).length
-  const labels = ['', 'Débil', 'Regular', 'Buena', 'Segura']
+  const labels = ['', t('register.strength_weak'), t('register.strength_fair'), t('register.strength_good'), t('register.strength_strong')]
   const colors = ['', 'bg-red-500', 'bg-amber-500', 'bg-yellow-400', 'bg-emerald-400']
   const textColors = ['', 'text-red-400', 'text-amber-400', 'text-yellow-300', 'text-emerald-400']
 
@@ -112,6 +108,13 @@ function PasswordStrength({ password }: { password: string }) {
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
+  const { t } = useTranslation()
+
+  const steps = [
+    { num: '01', label: t('register.step1') },
+    { num: '02', label: t('register.step2') },
+    { num: '03', label: t('register.step3') },
+  ]
 
   const [name, setName]               = useState('')
   const [email, setEmail]             = useState('')
@@ -124,9 +127,9 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!terms)                    { setError('Aceptá los términos y condiciones para continuar.'); return }
-    if (password !== passConfirm)  { setError('Las contraseñas no coinciden.'); return }
-    if (password.length < 8)       { setError('La contraseña debe tener al menos 8 caracteres.'); return }
+    if (!terms)                    { setError(t('register.error_terms')); return }
+    if (password !== passConfirm)  { setError(t('register.error_passwords')); return }
+    if (password.length < 8)       { setError(t('register.error_min_length')); return }
 
     setLoading(true)
     setError('')
@@ -149,7 +152,7 @@ export default function RegisterPage() {
         const errs = err.response.data.errors ?? {}
         setError(Object.values(errs).flat().join(' '))
       } else {
-        setError('Error al crear la cuenta. Intentá de nuevo.')
+        setError(t('register.error_create'))
       }
     } finally {
       setLoading(false)
@@ -178,11 +181,11 @@ export default function RegisterPage() {
             n<span className="text-[color:var(--color-noctua-amber)]">o</span>ctua
           </h1>
           <p className="text-3xl font-bold text-white leading-tight">
-            Empieza a{' '}
-            <span className="text-[color:var(--color-noctua-amber)]">monitorear.</span>
+            {t('register.headline')}{' '}
+            <span className="text-[color:var(--color-noctua-amber)]">{t('register.headline_accent')}</span>
           </p>
           <p className="text-gray-400 mt-3 text-base">
-            Registrá tu equipo y tus servicios<br />en menos de 5 minutos.
+            {t('register.subheadline')}
           </p>
         </div>
 
@@ -202,11 +205,11 @@ export default function RegisterPage() {
         </div>
 
         <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-600">Noctua v1.0 — Hecho en Bucaramanga, Colombia</p>
+          <p className="text-xs text-gray-600">{t('register.footer')}</p>
           <p className="text-sm text-gray-500">
-            ¿Ya tienes cuenta?{' '}
+            {t('register.already_have_account')}{' '}
             <Link to="/login" className="text-[color:var(--color-noctua-amber)] font-semibold hover:underline">
-              Iniciá sesión
+              {t('register.login_link')}
             </Link>
           </p>
         </div>
@@ -226,8 +229,8 @@ export default function RegisterPage() {
           style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px)' }}
         >
           <div className="mb-7">
-            <h2 className="text-2xl font-bold text-white tracking-tight">Crear cuenta</h2>
-            <p className="text-sm text-gray-400 mt-1">Completa los datos para empezar a monitorear.</p>
+            <h2 className="text-2xl font-bold text-white tracking-tight">{t('register.title')}</h2>
+            <p className="text-sm text-gray-400 mt-1">{t('register.subtitle')}</p>
           </div>
 
           {error && (
@@ -239,7 +242,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Nombre completo */}
             <div>
-              <label className={labelClass}>Nombre completo</label>
+              <label className={labelClass}>{t('register.full_name')}</label>
               <div className="relative">
                 <input
                   type="text"
@@ -255,7 +258,7 @@ export default function RegisterPage() {
 
             {/* Correo */}
             <div>
-              <label className={labelClass}>Correo electrónico</label>
+              <label className={labelClass}>{t('register.email')}</label>
               <div className="relative">
                 <input
                   type="email"
@@ -273,14 +276,14 @@ export default function RegisterPage() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <PasswordField
-                  label="Contraseña"
+                  label={t('register.password')}
                   value={password}
                   onChange={setPassword}
                 />
                 <PasswordStrength password={password} />
               </div>
               <PasswordField
-                label="Confirmar contraseña"
+                label={t('register.confirm_password')}
                 value={passConfirm}
                 onChange={setPassConfirm}
               />
@@ -288,7 +291,7 @@ export default function RegisterPage() {
 
             {/* Nombre del equipo */}
             <div>
-              <label className={labelClass}>Nombre del equipo</label>
+              <label className={labelClass}>{t('register.team_name')}</label>
               <div className="relative">
                 <input
                   type="text"
@@ -321,9 +324,9 @@ export default function RegisterPage() {
                 )}
               </div>
               <span className="text-sm text-gray-400">
-                Acepto los{' '}
+                {t('register.terms_prefix')}{' '}
                 <span className="text-[color:var(--color-noctua-amber)] hover:underline cursor-pointer">
-                  términos y condiciones de uso
+                  {t('register.terms_link')}
                 </span>.
               </span>
             </label>
@@ -340,14 +343,14 @@ export default function RegisterPage() {
                 disabled:opacity-50 disabled:cursor-not-allowed
               "
             >
-              {loading ? 'Creando cuenta...' : 'Crear cuenta'}
+              {loading ? t('register.submitting') : t('register.submit')}
             </button>
           </form>
 
           <p className="text-sm text-gray-500 text-center mt-5">
-            ¿Ya tienes cuenta?{' '}
+            {t('register.already_have_account')}{' '}
             <Link to="/login" className="text-[color:var(--color-noctua-amber)] font-semibold hover:underline">
-              Inicia sesión
+              {t('register.login_link')}
             </Link>
           </p>
         </div>

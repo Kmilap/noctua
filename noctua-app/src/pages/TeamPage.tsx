@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
@@ -30,32 +31,6 @@ const roleConfig = {
   viewer:   { label: 'Viewer',   bg: 'bg-blue-500/15',   text: 'text-blue-400',   border: 'border-blue-500/30' },
 }
 
-const rolesInfo = [
-  {
-    role: 'Admin',
-    desc: 'Acceso total: servicios, reglas, canales, equipo e incidentes.',
-    perms: ['Gestionar servicios', 'Crear reglas', 'Configurar canales', 'Invitar miembros', 'Resolver incidentes'],
-    color: 'border-[color:var(--color-noctua-amber)]/20',
-    dot: 'bg-[color:var(--color-noctua-amber)]',
-    text: 'text-[color:var(--color-noctua-amber)]',
-  },
-  {
-    role: 'Operator',
-    desc: 'Puede reconocer y resolver incidentes, ver dashboard y configurar reglas.',
-    perms: ['Ver dashboard', 'Crear reglas', 'Reconocer incidentes', 'Resolver incidentes'],
-    color: 'border-violet-500/20',
-    dot: 'bg-violet-400',
-    text: 'text-violet-400',
-  },
-  {
-    role: 'Viewer',
-    desc: 'Acceso de solo lectura al dashboard, servicios e historial.',
-    perms: ['Ver dashboard', 'Ver servicios', 'Ver incidentes'],
-    color: 'border-blue-500/20',
-    dot: 'bg-blue-400',
-    text: 'text-blue-400',
-  },
-]
 
 function MemberAvatar({ name, role }: { name: string; role: string }) {
   const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
@@ -74,7 +49,35 @@ function MemberAvatar({ name, role }: { name: string; role: string }) {
 export default function TeamPage() {
   const { token } = useAuth()
   const { role }  = usePermissions()
+  const { t }     = useTranslation()
   const headers   = { Authorization: `Bearer ${token}` }
+
+  const rolesInfo = [
+    {
+      role: 'Admin',
+      desc: t('team.admin_desc'),
+      perms: [t('team.perm_manage_services'), t('team.perm_create_rules'), t('team.perm_configure_channels'), t('team.perm_invite_members'), t('team.perm_resolve_incidents')],
+      color: 'border-[color:var(--color-noctua-amber)]/20',
+      dot: 'bg-[color:var(--color-noctua-amber)]',
+      text: 'text-[color:var(--color-noctua-amber)]',
+    },
+    {
+      role: 'Operator',
+      desc: t('team.operator_desc'),
+      perms: [t('team.perm_view_dashboard'), t('team.perm_create_rules'), t('team.perm_acknowledge_incidents'), t('team.perm_resolve_incidents')],
+      color: 'border-violet-500/20',
+      dot: 'bg-violet-400',
+      text: 'text-violet-400',
+    },
+    {
+      role: 'Viewer',
+      desc: t('team.viewer_desc'),
+      perms: [t('team.perm_view_dashboard'), t('team.perm_view_services'), t('team.perm_view_incidents')],
+      color: 'border-blue-500/20',
+      dot: 'bg-blue-400',
+      text: 'text-blue-400',
+    },
+  ]
 
   const [team, setTeam]       = useState<Team | null>(null)
   const [loading, setLoading] = useState(true)
@@ -98,7 +101,7 @@ export default function TeamPage() {
         { role: editRole },
         { headers }
       )
-      setEditSuccess('Rol actualizado correctamente.')
+      setEditSuccess(t('team.edit_success'))
       setTeam(prev => prev ? {
         ...prev,
         members: prev.members?.map(m =>
@@ -110,7 +113,7 @@ export default function TeamPage() {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         setEditError(err.response.data.message)
       } else {
-        setEditError('No se pudo actualizar el rol.')
+        setEditError(t('team.edit_error'))
       }
     } finally { setEditing(false) }
   }
@@ -123,7 +126,7 @@ export default function TeamPage() {
   const [inviteSuccess, setInviteSuccess] = useState('')
 
   const handleInvite = async () => {
-    if (!inviteEmail.trim()) { setInviteError('El correo es requerido.'); return }
+    if (!inviteEmail.trim()) { setInviteError(t('team.invite_error_email')); return }
     setInviting(true)
     setInviteError('')
     setInviteSuccess('')
@@ -132,14 +135,14 @@ export default function TeamPage() {
         { email: inviteEmail.trim(), role: inviteRole },
         { headers }
       )
-      setInviteSuccess('Invitación enviada correctamente.')
+      setInviteSuccess(t('team.invite_success'))
       setInviteEmail('')
       setTimeout(() => { setInviteModal(false); setInviteSuccess('') }, 1800)
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         setInviteError(err.response.data.message)
       } else {
-        setInviteError('No se pudo enviar la invitación.')
+        setInviteError(t('team.invite_error'))
       }
     } finally { setInviting(false) }
   }
@@ -150,7 +153,7 @@ export default function TeamPage() {
         const res = await axios.get('http://localhost:8000/api/team', { headers })
         setTeam(res.data)
       } catch {
-        setError('No se pudo cargar el equipo.')
+        setError(t('team.error_load'))
       } finally {
         setLoading(false)
       }
@@ -162,10 +165,10 @@ export default function TeamPage() {
   const members: TeamMember[] = team?.members ?? []
 
   const stats = [
-    { label: 'Miembros',      value: members.length || team?.members?.length || '—' },
-    { label: 'Servicios',     value: team?.services_count ?? '—' },
-    { label: 'Reglas activas', value: team?.alert_rules_count ?? '—' },
-    { label: 'Canales',       value: team?.notification_channels_count ?? '—' },
+    { label: t('team.stat_members'),      value: members.length || team?.members?.length || '—' },
+    { label: t('team.stat_services'),     value: team?.services_count ?? '—' },
+    { label: t('team.stat_active_rules'), value: team?.alert_rules_count ?? '—' },
+    { label: t('team.stat_channels'),     value: team?.notification_channels_count ?? '—' },
   ]
 
   if (loading) {
@@ -191,9 +194,9 @@ export default function TeamPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Equipo</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">{t('team.title')}</h1>
           <p className="text-sm text-gray-400 mt-1">
-            Gestiona los miembros de tu equipo y sus permisos en Noctua
+            {t('team.subtitle')}
           </p>
         </div>
         {role === 'admin' && (
@@ -205,7 +208,7 @@ export default function TeamPage() {
             "
             onClick={() => { setInviteModal(true); setInviteError(''); setInviteSuccess(''); setInviteEmail(''); }}
           >
-            + Invitar miembro
+            {t('team.invite_member')}
           </button>
         )}
       </div>
@@ -217,7 +220,7 @@ export default function TeamPage() {
       >
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-lg font-bold text-white">{team?.name ?? 'Mi equipo'}</p>
+            <p className="text-lg font-bold text-white">{team?.name ?? t('team.my_team')}</p>
             <p className="text-sm text-gray-500 mt-0.5 font-mono">{team?.slug ?? ''}</p>
           </div>
           <div className="grid grid-cols-4 gap-8 text-right">
@@ -233,21 +236,21 @@ export default function TeamPage() {
 
       {/* Tabla de miembros */}
       <div>
-        <h2 className="text-base font-semibold text-gray-300 mb-3">Miembros del equipo</h2>
+        <h2 className="text-base font-semibold text-gray-300 mb-3">{t('team.members_table')}</h2>
         <div
           className="rounded-2xl border border-white/8 overflow-hidden"
           style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(12px)' }}
         >
           {/* Header */}
           <div className="grid grid-cols-5 px-6 py-3 border-b border-white/5">
-            {['Miembro', 'Rol', 'Último acceso', 'Incidentes', ''].map(h => (
+            {[t('team.th_member'), t('team.th_role'), t('team.th_last_access'), t('team.th_incidents'), ''].map(h => (
               <span key={h} className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</span>
             ))}
           </div>
 
           {members.length === 0 ? (
             <div className="px-6 py-10 text-center text-gray-500 text-sm">
-              No hay miembros cargados. El endpoint /api/team puede no devolver el listado de members.
+              {t('team.no_members')}
             </div>
           ) : (
             members.map((member, i) => {
@@ -300,7 +303,7 @@ export default function TeamPage() {
                       }}
                       className="w-fit px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/8 hover:bg-white/12 text-gray-300 hover:text-white border border-white/10 transition-colors duration-200"
                     >
-                      Editar
+                      {t('team.edit')}
                     </button>
                   )}
                 </motion.div>
@@ -312,7 +315,7 @@ export default function TeamPage() {
 
       {/* Cards de roles y permisos */}
       <div>
-        <h2 className="text-base font-semibold text-gray-300 mb-3">Roles y permisos</h2>
+        <h2 className="text-base font-semibold text-gray-300 mb-3">{t('team.roles_perms')}</h2>
         <div className="grid grid-cols-3 gap-4">
           {rolesInfo.map(r => (
             <motion.div
@@ -363,9 +366,9 @@ export default function TeamPage() {
             {editSuccess && <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-xl px-4 py-2.5">{editSuccess}</div>}
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Cambiar rol</label>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('team.edit_change_role')}</label>
               {editMember.role === 'admin' ? (
-                <p className="text-sm text-gray-500 bg-white/3 border border-white/8 rounded-xl px-4 py-3">No se puede cambiar el rol de un Admin.</p>
+                <p className="text-sm text-gray-500 bg-white/3 border border-white/8 rounded-xl px-4 py-3">{t('team.edit_cannot_admin')}</p>
               ) : (
                 <div className="flex gap-2">
                   {(['operator','viewer'] as const).map(r => (
@@ -381,12 +384,12 @@ export default function TeamPage() {
             <div className="flex gap-3 mt-1">
               <button onClick={() => setEditModal(false)} disabled={editing}
                 className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50">
-                Cancelar
+                {t('team.edit_cancel')}
               </button>
               {editMember.role !== 'admin' && (
                 <button onClick={handleEditMember} disabled={editing}
                   className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors duration-200 disabled:opacity-50">
-                  {editing ? 'Guardando...' : 'Guardar cambio'}
+                  {editing ? t('team.edit_saving') : t('team.edit_save')}
                 </button>
               )}
             </div>
@@ -399,22 +402,22 @@ export default function TeamPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-md rounded-2xl border border-white/10 p-6 flex flex-col gap-5" style={{ background: 'rgba(15,14,23,0.98)' }}>
             <div>
-              <h2 className="text-lg font-bold text-white">Invitar miembro</h2>
-              <p className="text-sm text-gray-400 mt-1">El invitado recibirá un correo con el link para unirse al equipo.</p>
+              <h2 className="text-lg font-bold text-white">{t('team.invite_title')}</h2>
+              <p className="text-sm text-gray-400 mt-1">{t('team.invite_subtitle')}</p>
             </div>
 
             {inviteError && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-2.5">{inviteError}</div>}
             {inviteSuccess && <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-xl px-4 py-2.5">{inviteSuccess}</div>}
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Correo electrónico</label>
-              <input type="email" placeholder="usuario@empresa.com" value={inviteEmail}
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('team.invite_email_label')}</label>
+              <input type="email" placeholder={t('team.invite_email_placeholder')} value={inviteEmail}
                 onChange={e => setInviteEmail(e.target.value)}
                 className="w-full bg-white/5 text-white placeholder-gray-600 rounded-xl px-4 py-3 text-sm outline-none border border-white/10 focus:border-[color:var(--color-noctua-amber)]/60 transition-colors duration-200" />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Rol</label>
+              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('team.invite_role_label')}</label>
               <div className="flex gap-2">
                 {(['operator','viewer'] as const).map(r => (
                   <button key={r} onClick={() => setInviteRole(r)}
@@ -428,11 +431,11 @@ export default function TeamPage() {
             <div className="flex gap-3 mt-1">
               <button onClick={() => setInviteModal(false)} disabled={inviting}
                 className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50">
-                Cancelar
+                {t('team.invite_cancel')}
               </button>
               <button onClick={handleInvite} disabled={inviting}
                 className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors duration-200 disabled:opacity-50">
-                {inviting ? 'Enviando...' : 'Enviar invitación'}
+                {inviting ? t('team.invite_sending') : t('team.invite_send')}
               </button>
             </div>
           </div>

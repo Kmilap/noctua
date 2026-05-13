@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import AuroraBackground from '../components/AuroraBackground'
 import axios from 'axios'
 
@@ -26,6 +27,7 @@ const roleConfig = {
 
 export default function AcceptInvitationPage() {
   const [searchParams] = useSearchParams()
+  const { t } = useTranslation()
 
   // En producción estos datos vendrían del token de la URL
   // Por ahora los leemos de query params o usamos defaults para demo
@@ -47,13 +49,13 @@ export default function AcceptInvitationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password !== confirm) { setError('Las contraseñas no coinciden.'); return }
-    if (password.length < 8)  { setError('Mínimo 8 caracteres.'); return }
+    if (password !== confirm) { setError(t('register.error_passwords')); return }
+    if (password.length < 8)  { setError(t('forgot_password.step3_error_length')); return }
     setLoading(true)
     setError('')
     try {
       const token = searchParams.get('token')
-      if (!token) { setError('Token de invitación inválido.'); setLoading(false); return }
+      if (!token) { setError(t('accept_invitation.invalid_token')); setLoading(false); return }
       await axios.post('http://localhost:8000/api/invitations/' + token + '/accept', {
         name,
         password,
@@ -65,7 +67,7 @@ export default function AcceptInvitationPage() {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         setError(err.response.data.message)
       } else {
-        setError('Error al aceptar la invitación. El token puede haber expirado.')
+        setError(t('common.error_generic'))
       }
     } finally {
       setLoading(false)
@@ -94,8 +96,8 @@ export default function AcceptInvitationPage() {
             </svg>
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">¡Ya sos parte del equipo!</h2>
-            <p className="text-sm text-gray-400 mt-2">Redirigiendo al inicio de sesión...</p>
+            <h2 className="text-2xl font-bold text-white">{t('accept_invitation.done_title')}</h2>
+            <p className="text-sm text-gray-400 mt-2">{t('accept_invitation.done_subtitle')}</p>
           </div>
           <style>{`
             @keyframes scale-in {
@@ -158,12 +160,11 @@ export default function AcceptInvitationPage() {
         <div className="flex flex-col gap-6">
           <div>
             <p className="text-4xl font-bold text-white leading-tight">
-              Bienvenido<br />
-              <span style={{ color: '#14b8a6' }}>al equipo.</span>
+              {t('accept_invitation.welcome_heading')}<br />
+              <span style={{ color: '#14b8a6' }}>{t('accept_invitation.welcome_highlight')}</span>
             </p>
             <p className="mt-4 text-base leading-relaxed" style={{ color: '#5eead4' }}>
-              Tu invitación está lista.<br />
-              Completá tus datos y empezá<br />a monitorear.
+              {t('accept_invitation.welcome_desc')}
             </p>
           </div>
 
@@ -174,13 +175,13 @@ export default function AcceptInvitationPage() {
             </div>
             <div>
               <p className="text-sm font-bold text-white">{teamFromUrl}</p>
-              <p className="text-xs text-gray-500">Equipo al que te unís</p>
+              <p className="text-xs text-gray-500">{t('accept_invitation.team_label')}</p>
             </div>
           </div>
 
           {/* Badge de rol */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-400">Rol:</span>
+            <span className="text-sm text-gray-400">{t('accept_invitation.role_label')}</span>
             <div className="flex items-center gap-2 rounded-xl px-3 py-1.5" style={{ background: 'rgba(20,184,166,0.08)', border: '1px solid rgba(20,184,166,0.2)' }}>
               <span className="w-2 h-2 rounded-full" style={{ background: '#14b8a6' }} />
               <span className="text-sm font-semibold" style={{ color: '#14b8a6' }}>{roleCfg.label}</span>
@@ -205,8 +206,8 @@ export default function AcceptInvitationPage() {
           style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px)' }}
         >
           <div className="mb-7">
-            <h2 className="text-2xl font-bold text-white tracking-tight">Completá tu cuenta</h2>
-            <p className="text-sm text-gray-400 mt-1">Solo te pedimos lo esencial para empezar.</p>
+            <h2 className="text-2xl font-bold text-white tracking-tight">{t('accept_invitation.form_title')}</h2>
+            <p className="text-sm text-gray-400 mt-1">{t('accept_invitation.form_subtitle')}</p>
           </div>
 
           {error && (
@@ -218,7 +219,7 @@ export default function AcceptInvitationPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Email — prellenado y bloqueado */}
             <div>
-              <label className={labelClass}>Correo electrónico</label>
+              <label className={labelClass}>{t('accept_invitation.email')}</label>
               <div className="relative">
                 <input
                   type="email"
@@ -227,7 +228,7 @@ export default function AcceptInvitationPage() {
                   className={inputClass + ' pr-24 opacity-70 cursor-not-allowed'}
                 />
                 <span className="absolute right-8 top-1/2 -translate-y-1/2 text-xs font-semibold text-[color:var(--color-noctua-amber)] bg-[color:var(--color-noctua-amber)]/10 px-2 py-0.5 rounded-md border border-[color:var(--color-noctua-amber)]/20">
-                  prellenado
+                  {t('accept_invitation.prefilled')}
                 </span>
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[color:var(--color-noctua-amber)]" />
               </div>
@@ -235,7 +236,7 @@ export default function AcceptInvitationPage() {
 
             {/* Nombre completo */}
             <div>
-              <label className={labelClass}>Nombre completo</label>
+              <label className={labelClass}>{t('accept_invitation.full_name')}</label>
               <div className="relative">
                 <input
                   type="text"
@@ -250,7 +251,7 @@ export default function AcceptInvitationPage() {
 
             {/* Contraseña */}
             <div>
-              <label className={labelClass}>Crear contraseña</label>
+              <label className={labelClass}>{t('accept_invitation.create_password')}</label>
               <div className="relative">
                 <input
                   type={showPass ? 'text' : 'password'}
@@ -275,7 +276,7 @@ export default function AcceptInvitationPage() {
 
             {/* Confirmar contraseña */}
             <div>
-              <label className={labelClass}>Confirmar contraseña</label>
+              <label className={labelClass}>{t('accept_invitation.confirm_password')}</label>
               <div className="relative">
                 <input
                   type={showConf ? 'text' : 'password'}
@@ -313,14 +314,14 @@ export default function AcceptInvitationPage() {
                 boxShadow: '0 0 20px rgba(20,184,166,0.25)',
               }}
             >
-              {loading ? 'Uniéndome...' : 'Aceptar invitación y unirme'}
+              {loading ? t('accept_invitation.submitting') : t('accept_invitation.submit')}
             </button>
           </form>
 
           <p className="text-xs text-gray-500 text-center mt-4">
-            Al unirte aceptás los{' '}
+            {t('accept_invitation.terms_prefix')}{' '}
             <span className="text-gray-400 hover:text-white cursor-pointer transition-colors">
-              términos de uso de Noctua
+              {t('accept_invitation.terms_link')}
             </span>.
           </p>
         </div>

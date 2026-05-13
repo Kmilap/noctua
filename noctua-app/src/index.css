@@ -229,6 +229,35 @@ body {
   }
 }
 
+/* ============================================
+   TEMA CLARO — Paleta suave Noctua cream
+   ============================================ */
+
+html, body {
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+html[data-theme="light"] {
+  --color-noctua-bg: #F2EDE6;
+  --color-noctua-surface: #E8E2D8;
+  --color-noctua-border: #CEC9BA;
+  --color-noctua-amber: #D4831A;
+  --color-noctua-amber-hover: #BF7416;
+}
+
+html[data-theme="light"] body {
+  background-color: var(--color-noctua-bg);
+  color: #2D2B22;
+}
+
+html[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(180, 170, 150, 0.5);
+}
+
+html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(180, 170, 150, 0.8);
+}
+
 /* Fix autofill de Chrome — evita el fondo blanco en inputs */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
