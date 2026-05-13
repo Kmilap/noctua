@@ -1,38 +1,32 @@
 // Noctua Load Generator — traffic-patterns.js
 //
-// k6 script que ataca un servicio con plantilla siguiendo 4 patrones
-// que rotan en ciclos de ~5 minutos. Cada servicio empieza en una fase
-// distinta del ciclo (offset basado en SERVICE_ID) para que el dashboard
-// no muestre todos los servicios moviéndose en sincronía.
+// Genera tráfico HTTP contra un servicio con plantilla con 4 patrones
+// que rotan en ciclos de ~5 minutos (ver ALL_STAGES).
 //
-// Patrones (cada uno dura una "stage" k6):
-//   - idle:       1-2 req/s    (60s)  — línea base
-//   - rampa:      2 → 30 req/s (60s)  — subida gradual
-//   - sostenido:  30 req/s     (120s) — plateau visible
-//   - pico:       80 req/s     (60s)  — ráfaga
+// Además de generar tráfico, reporta métricas a la API de Noctua:
+//   - response_time (ms)   → cada VU reporta max 1 vez cada METRIC_THROTTLE_MS
+//   - heartbeat             → incluye status_code real + response_time
 //
-// Ciclo total: ~5 minutos. Después k6 termina y entrypoint.sh lo
-// relanza en la siguiente iteración del discovery loop, lo que
-// efectivamente lo hace correr "para siempre" con variación natural.
-//
-// Errores: ~7% de los requests apuntan a paths inexistentes (genera 404),
-// para que error_rate en el dashboard no sea siempre 0. Los 5xx
-// (que disparan alertas) NO salen de aquí — esos los genera el simulator
-// agresivo de la Fase 2.
+// Esto conecta el load-generator al pipeline de métricas de Noctua sin
+// necesitar un agente separado para latencia y tráfico.
 
 import http from 'k6/http';
 import { sleep } from 'k6';
 
-const TARGET_URL = __ENV.TARGET_URL;
-const SERVICE_ID = parseInt(__ENV.SERVICE_ID || '0', 10);
+const TARGET_URL     = __ENV.TARGET_URL;
+const SERVICE_ID     = parseInt(__ENV.SERVICE_ID || '0', 10);
+const NOCTUA_API_KEY = __ENV.NOCTUA_API_KEY || '';
+const NOCTUA_API_URL = __ENV.NOCTUA_API_URL || 'http://app:8000/api';
 
 if (!TARGET_URL) {
     throw new Error('TARGET_URL is required');
 }
 
-// Offset: cada servicio empieza en una fase distinta del ciclo.
-// SERVICE_ID 1 → arranca en idle, ID 2 → arranca en rampa, etc.
-// Esto se logra rotando el array de stages según el id.
+// Throttle: cada VU envía métricas a Noctua a lo sumo cada N ms.
+// Con 30 VUs y 10s de throttle = 3 reportes/s como máximo al Noctua API.
+const METRIC_THROTTLE_MS     = 10_000;   // response_time: 1 por VU cada 10s
+const HEARTBEAT_THROTTLE_MS  = 30_000;  // heartbeat:     1 por VU cada 30s
+
 const ALL_STAGES = [
     { duration: '60s',  target: 2  },  // idle
     { duration: '60s',  target: 30 },  // rampa
@@ -48,53 +42,66 @@ function rotateStages(stages, offset) {
 
 export const options = {
     stages: rotateStages(ALL_STAGES, SERVICE_ID),
-
-    // No queremos que k6 marque "test failed" por nada de lo de adentro.
-    // El propósito es generar tráfico, no validar el servicio.
     thresholds: {},
-
-    // Logs minimos.
     summaryTrendStats: ['avg', 'p(95)', 'p(99)'],
-
-    // Si una request individual se cuelga, no bloqueamos el VU.
-    // 10 segundos es generoso pero evita memoria infinita.
     setupTimeout: '10s',
     teardownTimeout: '10s',
 };
 
-// Paths comunes en plantillas Laravel/WordPress/Nginx.
-// La mayoría devuelven 200; los que empiezan con __noctua__ devuelven
-// 404 deliberadamente para inyectar errores en el dashboard.
-const HAPPY_PATHS = [
-    '/',
-    '/',
-    '/',           // peso 3x para que / domine (es la landing real)
-    '/favicon.ico',
-];
+const HAPPY_PATHS = ['/', '/', '/', '/favicon.ico'];
+const ERROR_PATHS = ['/__noctua__/no-existe', '/__noctua__/404-bait', '/api/no-existe'];
 
-const ERROR_PATHS = [
-    '/__noctua__/no-existe',
-    '/__noctua__/404-bait',
-    '/api/no-existe',
-];
+// Cabeceras para el Noctua API (reutilizamos el objeto para no recrearlo).
+const noctuaHeaders = NOCTUA_API_KEY
+    ? { 'Authorization': `Bearer ${NOCTUA_API_KEY}`, 'Content-Type': 'application/json' }
+    : {};
+
+// Estado por VU (k6 ejecuta cada VU en un coroutine independiente).
+let _lastMetricAt    = 0;
+let _lastHeartbeatAt = 0;
+
+function reportMetric(metricName, value, unit) {
+    if (!NOCTUA_API_KEY) return;
+    http.post(
+        `${NOCTUA_API_URL}/metrics`,
+        JSON.stringify({ metric_name: metricName, value, metadata: { unit } }),
+        { headers: noctuaHeaders, timeout: '3s', tags: { noctua_internal: '1' } }
+    );
+}
+
+function reportHeartbeat(statusCode, responseTimeMs) {
+    if (!NOCTUA_API_KEY) return;
+    http.post(
+        `${NOCTUA_API_URL}/heartbeat`,
+        JSON.stringify({ status_code: statusCode, response_time_ms: responseTimeMs }),
+        { headers: noctuaHeaders, timeout: '3s', tags: { noctua_internal: '1' } }
+    );
+}
 
 export default function () {
-    // 7% de las requests apuntan a paths inexistentes (genera 404).
     const isError = Math.random() < 0.07;
-    const paths = isError ? ERROR_PATHS : HAPPY_PATHS;
-    const path = paths[Math.floor(Math.random() * paths.length)];
+    const paths   = isError ? ERROR_PATHS : HAPPY_PATHS;
+    const path    = paths[Math.floor(Math.random() * paths.length)];
 
-    http.get(`${TARGET_URL}${path}`, {
+    const res = http.get(`${TARGET_URL}${path}`, {
         timeout: '5s',
-        // Tags útiles si en el futuro mandamos métricas de k6 a algún lado.
-        tags: {
-            service_id: String(SERVICE_ID),
-            expected_status: isError ? '404' : '200',
-        },
+        tags: { service_id: String(SERVICE_ID) },
     });
 
-    // Pequeña pausa para no saturar instantáneamente. k6 escala los VUs
-    // según el target del stage actual; este sleep solo afecta el ritmo
-    // dentro de cada VU.
+    const now = Date.now();
+    const rt  = Math.round(res.timings.duration);
+
+    // Reportar response_time al API de Noctua (throttled).
+    if (NOCTUA_API_KEY && (now - _lastMetricAt) >= METRIC_THROTTLE_MS) {
+        _lastMetricAt = now;
+        reportMetric('response_time', rt, 'ms');
+    }
+
+    // Reportar heartbeat (throttled — complementa al sidecar agent cada 30s).
+    if (NOCTUA_API_KEY && (now - _lastHeartbeatAt) >= HEARTBEAT_THROTTLE_MS) {
+        _lastHeartbeatAt = now;
+        reportHeartbeat(res.status, rt);
+    }
+
     sleep(0.1);
 }
