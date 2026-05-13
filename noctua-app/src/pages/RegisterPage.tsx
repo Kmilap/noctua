@@ -143,7 +143,7 @@ export default function RegisterPage() {
       // Iniciar sesión de manera automática
       
       await login(email, password)
-      navigate('/')
+      navigate('/app/dashboard')
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 422) {
         const errs = err.response.data.errors ?? {}
