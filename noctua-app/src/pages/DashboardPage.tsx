@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
@@ -34,16 +35,17 @@ type MetricSignals = {
   errors: { error_rate_pct: number | null }
 }
 
-const statusConfig = {
-  active:   { label: 'Activo',       dot: 'bg-emerald-400', badge: 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20' },
-  warning:  { label: 'Warning',      dot: 'bg-amber-400',   badge: 'bg-amber-400/15 text-amber-400 border-amber-400/20' },
-  critical: { label: 'Caído',        dot: 'bg-red-400',     badge: 'bg-red-400/15 text-red-400 border-red-400/20' },
-  unknown:  { label: 'Desconocido',  dot: 'bg-gray-500',    badge: 'bg-gray-500/15 text-gray-400 border-gray-500/20' },
+const statusStyles = {
+  active:   { dot: 'bg-emerald-400', badge: 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20' },
+  warning:  { dot: 'bg-amber-400',   badge: 'bg-amber-400/15 text-amber-400 border-amber-400/20' },
+  critical: { dot: 'bg-red-400',     badge: 'bg-red-400/15 text-red-400 border-red-400/20' },
+  unknown:  { dot: 'bg-gray-500',    badge: 'bg-gray-500/15 text-gray-400 border-gray-500/20' },
 }
 
 export default function DashboardPage() {
   const { token } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const headers = { Authorization: `Bearer ${token}` }
 
   const [stats, setStats]             = useState<DashboardStats | null>(null)
@@ -141,46 +143,46 @@ export default function DashboardPage() {
 
   const metricCards = stats ? [
     {
-      label: 'Servicios activos',
+      label: t('dashboard.metric_active_services'),
       value: `${stats.active_services}/${stats.total_services}`,
-      sub: 'servicios monitoreados',
+      sub: t('dashboard.metric_active_services_sub'),
     },
     {
-      label: 'Incidentes abiertos',
+      label: t('dashboard.metric_open_incidents'),
       value: stats.open_incidents,
       sub: stats.open_incidents > 0
         ? `${stats.critical_incidents} critical, ${stats.warning_incidents} warning`
-        : 'Sin incidentes activos',
+        : t('dashboard.metric_no_incidents'),
     },
     {
-      label: 'Response time avg',
+      label: t('dashboard.metric_response_time'),
       value: stats.avg_response_time > 0 ? `${stats.avg_response_time}ms` : '—',
-      sub: 'respuesta p50 hoy',
+      sub: t('dashboard.metric_response_time_sub'),
     },
     {
-      label: 'Alertas hoy',
+      label: t('dashboard.metric_alerts_today'),
       value: stats.alerts_today,
-      sub: `${stats.resolved_today} resueltas, ${stats.active_alerts} activas`,
+      sub: `${stats.resolved_today} ${t('dashboard.metric_resolved')}, ${stats.active_alerts} ${t('dashboard.metric_active')}`,
     },
     {
-      label: 'CPU promedio',
+      label: t('dashboard.metric_cpu'),
       value: avgCpu !== null ? `${avgCpu}%` : '—',
-      sub: 'todos los servicios',
+      sub: t('dashboard.metric_all_services'),
     },
     {
-      label: 'Memoria promedio',
+      label: t('dashboard.metric_memory'),
       value: avgMem !== null ? `${avgMem} MB` : '—',
-      sub: 'todos los servicios',
+      sub: t('dashboard.metric_all_services'),
     },
     {
-      label: 'Request rate',
+      label: t('dashboard.metric_request_rate'),
       value: totalRequestRate !== null ? `${totalRequestRate}/min` : '—',
-      sub: 'peticiones totales',
+      sub: t('dashboard.metric_request_rate_sub'),
     },
     {
-      label: 'Error rate',
+      label: t('dashboard.metric_error_rate'),
       value: avgErrorRate !== null ? `${avgErrorRate}%` : '—',
-      sub: 'promedio servicios',
+      sub: t('dashboard.metric_error_rate_sub'),
     },
   ] : []
 
@@ -188,8 +190,8 @@ export default function DashboardPage() {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex flex-col gap-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
-        <p className="text-sm text-gray-400 mt-1">Estado general de tus servicios</p>
+        <h1 className="text-3xl font-bold text-white tracking-tight">{t('dashboard.title')}</h1>
+        <p className="text-sm text-gray-400 mt-1">{t('dashboard.subtitle')}</p>
       </div>
 
       {/* 8 Metric cards */}
@@ -217,24 +219,25 @@ export default function DashboardPage() {
 
       {/* Services table */}
       <div>
-        <h2 className="text-base font-semibold text-gray-300 mb-3">Servicios monitoreados</h2>
+        <h2 className="text-base font-semibold text-gray-300 mb-3">{t('dashboard.monitored_services')}</h2>
         <div
           className="rounded-2xl border border-white/8 overflow-hidden"
           style={{ background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(12px)' }}
         >
           <div className="grid grid-cols-5 px-6 py-3 border-b border-white/5">
-            {['Servicio', 'Estado', 'Response Time', 'Uptime 24h', 'Última señal'].map(h => (
+            {[t('dashboard.th_service'), t('dashboard.th_status'), t('dashboard.th_response_time'), t('dashboard.th_uptime'), t('dashboard.th_last_signal')].map(h => (
               <span key={h} className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</span>
             ))}
           </div>
 
           {loading ? (
-            <div className="px-6 py-8 text-center text-gray-500 text-sm">Cargando...</div>
+            <div className="px-6 py-8 text-center text-gray-500 text-sm">{t('dashboard.loading')}</div>
           ) : services.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500 text-sm">No hay servicios registrados.</div>
+            <div className="px-6 py-8 text-center text-gray-500 text-sm">{t('dashboard.no_services')}</div>
           ) : (
             services.map((svc, i) => {
-              const cfg = statusConfig[svc.status] ?? statusConfig.unknown
+              const cfg = statusStyles[svc.status] ?? statusStyles.unknown
+              const statusLabel = t(`dashboard.status_${svc.status}` as any)
               return (
                 <div
                   key={svc.id}
@@ -253,7 +256,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <span className={`inline-flex w-fit px-2.5 py-0.5 rounded-md text-xs font-semibold border ${cfg.badge}`}>
-                    {cfg.label}
+                    {statusLabel}
                   </span>
                   <span className="text-sm text-gray-300 tabular-nums">
                     {svc.response_time_ms != null ? `${svc.response_time_ms}ms` : '—'}
@@ -274,7 +277,7 @@ export default function DashboardPage() {
       {/* Gráfico de métricas */}
       {services.length > 0 && (
         <div>
-          <h2 className="text-base font-semibold text-gray-300 mb-3">Métricas históricas</h2>
+          <h2 className="text-base font-semibold text-gray-300 mb-3">{t('dashboard.historical_metrics')}</h2>
           <div className="grid grid-cols-2 gap-4">
             {services.filter(s => s.status !== 'unknown').map(svc => (
               <MetricsChart

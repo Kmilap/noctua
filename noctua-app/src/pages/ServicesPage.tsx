@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
@@ -41,20 +42,20 @@ type ServiceTemplate = {
 
 type ModalMode = 'choice' | 'external' | 'template'
 
-const statusConfig = {
-  active:   { label: 'Activo',      dot: 'bg-emerald-400', badge: 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20' },
-  warning:  { label: 'Warning',     dot: 'bg-amber-400',   badge: 'bg-amber-400/15 text-amber-400 border-amber-400/20' },
-  critical: { label: 'Crítico',     dot: 'bg-red-400',     badge: 'bg-red-400/15 text-red-400 border-red-400/20' },
-  unknown:  { label: 'Desconocido', dot: 'bg-gray-500',    badge: 'bg-gray-500/15 text-gray-400 border-gray-500/20' },
+const statusStyles = {
+  active:   { dot: 'bg-emerald-400', badge: 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20' },
+  warning:  { dot: 'bg-amber-400',   badge: 'bg-amber-400/15 text-amber-400 border-amber-400/20' },
+  critical: { dot: 'bg-red-400',     badge: 'bg-red-400/15 text-red-400 border-red-400/20' },
+  unknown:  { dot: 'bg-gray-500',    badge: 'bg-gray-500/15 text-gray-400 border-gray-500/20' },
 }
 
-const containerStatusConfig: Record<NonNullable<ContainerStatus>, { label: string; dot: string; badge: string }> = {
-  running:  { label: 'Corriendo',  dot: 'bg-emerald-400 animate-pulse', badge: 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20' },
-  starting: { label: 'Iniciando',  dot: 'bg-amber-400 animate-pulse',   badge: 'bg-amber-400/15 text-amber-400 border-amber-400/20' },
-  stopped:  { label: 'Detenido',   dot: 'bg-gray-500',                  badge: 'bg-gray-500/15 text-gray-400 border-gray-500/20' },
-  error:    { label: 'Error',      dot: 'bg-red-400',                   badge: 'bg-red-400/15 text-red-400 border-red-400/20' },
-  removing: { label: 'Eliminando', dot: 'bg-orange-400 animate-pulse',  badge: 'bg-orange-400/15 text-orange-400 border-orange-400/20' },
-  missing:  { label: 'Perdido',    dot: 'bg-red-400',                   badge: 'bg-red-400/15 text-red-400 border-red-400/20' },
+const containerStyles: Record<NonNullable<ContainerStatus>, { dot: string; badge: string }> = {
+  running:  { dot: 'bg-emerald-400 animate-pulse', badge: 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20' },
+  starting: { dot: 'bg-amber-400 animate-pulse',   badge: 'bg-amber-400/15 text-amber-400 border-amber-400/20' },
+  stopped:  { dot: 'bg-gray-500',                  badge: 'bg-gray-500/15 text-gray-400 border-gray-500/20' },
+  error:    { dot: 'bg-red-400',                   badge: 'bg-red-400/15 text-red-400 border-red-400/20' },
+  removing: { dot: 'bg-orange-400 animate-pulse',  badge: 'bg-orange-400/15 text-orange-400 border-orange-400/20' },
+  missing:  { dot: 'bg-red-400',                   badge: 'bg-red-400/15 text-red-400 border-red-400/20' },
 }
 
 const templateIconMap: Record<string, React.ReactNode> = {
@@ -83,9 +84,10 @@ function ServiceCard({
   actionLoading, newServiceKeys, copied,
   onContainerAction, onCopy,
 }: ServiceCardProps) {
-    const cfg    = statusConfig[svc.status] ?? statusConfig.unknown
-    const csCfg  = svc.container_status ? containerStatusConfig[svc.container_status] : null
-    const tpl    = svc.template_id ? templates.find(t => t.id === svc.template_id) : null
+    const { t }  = useTranslation()
+    const cfg    = statusStyles[svc.status] ?? statusStyles.unknown
+    const csCfg  = svc.container_status ? containerStyles[svc.container_status] : null
+    const tpl    = svc.template_id ? templates.find(tpl => tpl.id === svc.template_id) : null
     const intervalLabel = svc.check_interval_seconds >= 60
       ? (svc.check_interval_seconds / 60) + 'm'
       : svc.check_interval_seconds + 's'
@@ -118,7 +120,7 @@ function ServiceCard({
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <span className={'px-2.5 py-0.5 rounded-md text-xs font-semibold border ' + cfg.badge}>
-              {cfg.label}
+              {t(('services.status_' + svc.status) as any)}
             </span>
             <AnimatePresence mode="wait">
               {csCfg && (
@@ -131,7 +133,7 @@ function ServiceCard({
                   className={'flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ' + csCfg.badge}
                 >
                   <span className={'w-1.5 h-1.5 rounded-full ' + csCfg.dot} />
-                  {csCfg.label}
+                  {t(('services.cs_' + svc.container_status) as any)}
                 </motion.span>
               )}
             </AnimatePresence>
@@ -140,9 +142,9 @@ function ServiceCard({
 
         <div className="grid grid-cols-3 gap-2">
           {[
-            { label: 'Intervalo',  value: tpl ? 'Puerto ' + (svc.host_port ?? '—') : intervalLabel },
-            { label: 'Plantilla',  value: tpl ? tpl.name : 'Externo' },
-            { label: 'Uptime 24h', value: svc.uptime_24h != null ? parseFloat(String(svc.uptime_24h)).toFixed(1) + '%' : '—' },
+            { label: t('services.stat_interval'),  value: tpl ? t('services.port_prefix') + ' ' + (svc.host_port ?? '—') : intervalLabel },
+            { label: t('services.stat_template'),  value: tpl ? tpl.name : t('services.external_label') },
+            { label: t('services.stat_uptime'), value: svc.uptime_24h != null ? parseFloat(String(svc.uptime_24h)).toFixed(1) + '%' : '—' },
           ].map(stat => (
             <div key={stat.label}>
               <p className="text-xs text-gray-500 mb-0.5">{stat.label}</p>
@@ -159,7 +161,7 @@ function ServiceCard({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Play size={12} />
-              {actionLoading[svc.id] === 'start' ? '...' : 'Iniciar'}
+              {actionLoading[svc.id] === 'start' ? '...' : t('services.start')}
             </button>
             <button
               onClick={() => onContainerAction(svc, 'stop')}
@@ -167,7 +169,7 @@ function ServiceCard({
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/8 hover:bg-white/12 text-gray-300 border border-white/10 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Square size={12} />
-              {actionLoading[svc.id] === 'stop' ? '...' : 'Detener'}
+              {actionLoading[svc.id] === 'stop' ? '...' : t('services.stop')}
             </button>
             <button
               onClick={() => onContainerAction(svc, 'restart')}
@@ -198,7 +200,7 @@ function ServiceCard({
                 onClick={() => onCopy(svc)}
                 className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[color:var(--color-noctua-amber)]/15 hover:bg-[color:var(--color-noctua-amber)]/25 text-[color:var(--color-noctua-amber)] border border-[color:var(--color-noctua-amber)]/20 transition-colors duration-200"
               >
-                {copied === svc.id ? '¡Copiado!' : 'Copiar'}
+                {copied === svc.id ? t('services.copied') : t('services.copy')}
               </button>
             )}
           </div>
@@ -210,6 +212,7 @@ function ServiceCard({
 export default function ServicesPage() {
   const { token } = useAuth()
   const { role }  = usePermissions()
+  const { t }     = useTranslation()
   const headers   = { Authorization: `Bearer ${token}` }
 
   const canCreate           = role === 'admin' || role === 'operator'
@@ -298,7 +301,7 @@ export default function ServicesPage() {
   }
 
   const handleSubmitExternal = async () => {
-    if (!form.name.trim()) { setFormError('El nombre es requerido.'); return }
+    if (!form.name.trim()) { setFormError(t('services.error_name')); return }
     setSubmitting(true)
     setFormError('')
     try {
@@ -318,18 +321,18 @@ export default function ServicesPage() {
         const errs = err.response.data.errors ?? {}
         setFormError(Object.values(errs).flat().join(' '))
       } else {
-        setFormError('Error al crear el servicio.')
+        setFormError(t('services.error_create'))
       }
     } finally { setSubmitting(false) }
   }
 
   const handleSubmitTemplate = async () => {
-    if (!tplName.trim()) { setTplError('El nombre es requerido.'); return }
+    if (!tplName.trim()) { setTplError(t('services.error_name')); return }
     if (!tplPort || parseInt(tplPort) < 1024 || parseInt(tplPort) > 9999) {
-      setTplError('El puerto debe estar entre 1024 y 9999.')
+      setTplError(t('services.error_port'))
       return
     }
-    if (!selectedTemplate) { setTplError('Seleccioná una plantilla.'); return }
+    if (!selectedTemplate) { setTplError(t('services.error_select_template')); return }
     setSubmitting(true)
     setTplError('')
     try {
@@ -347,7 +350,7 @@ export default function ServicesPage() {
       } else if (axios.isAxiosError(err) && err.response?.data?.message) {
         setTplError(err.response.data.message)
       } else {
-        setTplError('Error al crear el servicio.')
+        setTplError(t('services.error_create'))
       }
     } finally { setSubmitting(false) }
   }
@@ -419,15 +422,15 @@ export default function ServicesPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Servicios</h1>
-          <p className="text-sm text-gray-400 mt-1">Registra y gestiona los microservicios que Noctua monitorea</p>
+          <h1 className="text-3xl font-bold text-white tracking-tight">{t('services.title')}</h1>
+          <p className="text-sm text-gray-400 mt-1">{t('services.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
           {canCreate && services.length > 0 && (
             <button
               onClick={() => { setSelectedToDelete(new Set()); setDeleteModalOpen(true) }}
               className="p-2.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 border border-white/8 hover:border-red-500/20 transition-all duration-200"
-              title="Eliminar servicios"
+              title={t('services.delete_modal_title')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
@@ -441,7 +444,7 @@ export default function ServicesPage() {
               text-black font-semibold px-5 py-2.5 rounded-lg
               transition-colors duration-200 glow-amber shrink-0
             ">
-              + Nuevo servicio
+              {t('services.new_service')}
             </button>
           )}
         </div>
@@ -450,7 +453,7 @@ export default function ServicesPage() {
       <div className="relative max-w-sm">
         <input
           type="text"
-          placeholder="Buscar servicio..."
+          placeholder={t('services.search_placeholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full bg-white/5 text-white placeholder-gray-500 text-sm rounded-xl px-4 py-2.5 outline-none border border-white/10 focus:border-white/20 transition-colors duration-200"
@@ -464,7 +467,7 @@ export default function ServicesPage() {
       ) : filtered.length === 0 ? (
         <div className="border border-dashed border-white/10 rounded-2xl px-6 py-12 text-center">
           <p className="text-gray-500 text-sm">
-            {search ? 'Sin resultados para "' + search + '".' : 'No hay servicios registrados. Creá el primero.'}
+            {search ? t('services.no_results') + ' "' + search + '".' : t('services.no_services')}
           </p>
         </div>
       ) : (
@@ -476,7 +479,7 @@ export default function ServicesPage() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-4 rounded-full bg-[color:var(--color-noctua-amber)]" />
-                  <h2 className="text-sm font-bold text-white tracking-wide">Plantillas</h2>
+                  <h2 className="text-sm font-bold text-white tracking-wide">{t('services.section_templates')}</h2>
                   <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-[color:var(--color-noctua-amber)]/15 text-[color:var(--color-noctua-amber)] border border-[color:var(--color-noctua-amber)]/20">
                     {filteredTemplates.length}
                   </span>
@@ -495,7 +498,7 @@ export default function ServicesPage() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-4 rounded-full bg-blue-400" />
-                  <h2 className="text-sm font-bold text-white tracking-wide">Servicios externos</h2>
+                  <h2 className="text-sm font-bold text-white tracking-wide">{t('services.section_external')}</h2>
                   <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-400/15 text-blue-400 border border-blue-400/20">
                     {filteredExternal.length}
                   </span>
@@ -514,8 +517,8 @@ export default function ServicesPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setModal(false)}
-        title={modalMode === 'choice' ? 'Nuevo servicio' : modalMode === 'external' ? 'Servicio externo' : 'Servicio con plantilla'}
-        subtitle={modalMode === 'choice' ? '¿Qué tipo de servicio querés registrar?' : modalMode === 'external' ? 'Registrá un microservicio para que Noctua lo monitoree.' : 'Elegí una plantilla y configurá el puerto de acceso.'}
+        title={modalMode === 'choice' ? t('services.modal_choice_title') : modalMode === 'external' ? t('services.modal_external_title') : t('services.modal_template_title')}
+        subtitle={modalMode === 'choice' ? t('services.modal_choice_subtitle') : modalMode === 'external' ? t('services.modal_external_subtitle') : t('services.modal_template_subtitle')}
         closeOnBackdropClick={false}
       >
         {modalMode === 'choice' && (
@@ -525,8 +528,8 @@ export default function ServicesPage() {
                 <Globe size={18} className="text-gray-300" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Servicio externo</p>
-                <p className="text-xs text-gray-500 mt-0.5">Monitoreo de un endpoint existente con métricas via API key.</p>
+                <p className="text-sm font-semibold text-white">{t('services.modal_external_name')}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{t('services.modal_external_desc')}</p>
               </div>
             </button>
             {canCreateTemplate && (
@@ -535,8 +538,8 @@ export default function ServicesPage() {
                   <Code2 size={18} className="text-[color:var(--color-noctua-amber)]" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Servicio con plantilla</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Levantá un contenedor Docker preconfigurado (Laravel, WordPress, Redis…)</p>
+                  <p className="text-sm font-semibold text-white">{t('services.modal_template_name')}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{t('services.modal_template_desc')}</p>
                 </div>
               </button>
             )}
@@ -547,29 +550,29 @@ export default function ServicesPage() {
           <div className="flex flex-col gap-4">
             {formError && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-2.5">{formError}</div>}
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Nombre del servicio</label>
+              <label className={labelClass}>{t('services.field_service_name')}</label>
               <input type="text" placeholder="ej. checkout-api" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inputClass} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>URL del endpoint</label>
+              <label className={labelClass}>{t('services.field_url')}</label>
               <input type="text" placeholder="https://checkout.noctua.dev" value={form.url} onChange={e => setForm(f => ({ ...f, url: e.target.value }))} className={inputClass} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Intervalo</label>
+                <label className={labelClass}>{t('services.field_interval')}</label>
                 <input type="number" value={form.interval} onChange={e => setForm(f => ({ ...f, interval: e.target.value }))} className={inputClass + ' tabular-nums'} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Unidad</label>
+                <label className={labelClass}>{t('services.field_unit')}</label>
                 <select value={form.unit} onChange={e => setForm(f => ({ ...f, unit: e.target.value }))} className={inputClass}>
-                  <option value="seconds">segundos</option>
-                  <option value="minutes">minutos</option>
+                  <option value="seconds">{t('services.unit_seconds')}</option>
+                  <option value="minutes">{t('services.unit_minutes')}</option>
                 </select>
               </div>
             </div>
             <div className="flex gap-3 mt-2">
-              <button onClick={() => setModalMode('choice')} disabled={submitting} className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50">Atrás</button>
-              <button onClick={handleSubmitExternal} disabled={submitting} className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors duration-200 disabled:opacity-50">{submitting ? 'Creando...' : 'Crear servicio'}</button>
+              <button onClick={() => setModalMode('choice')} disabled={submitting} className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50">{t('services.back')}</button>
+              <button onClick={handleSubmitExternal} disabled={submitting} className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors duration-200 disabled:opacity-50">{submitting ? t('services.creating') : t('services.create_service')}</button>
             </div>
           </div>
         )}
@@ -578,16 +581,16 @@ export default function ServicesPage() {
           <div className="flex flex-col gap-4">
             {tplError && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-2.5">{tplError}</div>}
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Plantilla</label>
+              <label className={labelClass}>{t('services.field_template')}</label>
               <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
-                {templates.map(t => (
-                  <button key={t.id} onClick={() => setSelectedTemplate(t)} className={'flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all duration-200 ' + (selectedTemplate?.id === t.id ? 'border-[color:var(--color-noctua-amber)]/40 bg-[color:var(--color-noctua-amber)]/10 text-white' : 'border-white/10 bg-white/5 hover:bg-white/8 text-gray-300 hover:text-white')}>
-                    <span className={'shrink-0 ' + (selectedTemplate?.id === t.id ? 'text-[color:var(--color-noctua-amber)]' : 'text-gray-400')}>
-                      {templateIconMap[t.icon] ?? <Code2 size={16} />}
+                {templates.map(tmpl => (
+                  <button key={tmpl.id} onClick={() => setSelectedTemplate(tmpl)} className={'flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all duration-200 ' + (selectedTemplate?.id === tmpl.id ? 'border-[color:var(--color-noctua-amber)]/40 bg-[color:var(--color-noctua-amber)]/10 text-white' : 'border-white/10 bg-white/5 hover:bg-white/8 text-gray-300 hover:text-white')}>
+                    <span className={'shrink-0 ' + (selectedTemplate?.id === tmpl.id ? 'text-[color:var(--color-noctua-amber)]' : 'text-gray-400')}>
+                      {templateIconMap[tmpl.icon] ?? <Code2 size={16} />}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold truncate">{t.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{t.category}</p>
+                      <p className="text-xs font-semibold truncate">{tmpl.name}</p>
+                      <p className="text-xs text-gray-500 truncate">{tmpl.category}</p>
                     </div>
                   </button>
                 ))}
@@ -596,20 +599,20 @@ export default function ServicesPage() {
             {selectedTemplate && (
               <div className="bg-white/3 border border-white/8 rounded-xl px-4 py-3 text-xs text-gray-400">
                 {selectedTemplate.description}
-                {selectedTemplate.persistent && <span className="ml-2 text-[color:var(--color-noctua-amber)]">· Persistente</span>}
+                {selectedTemplate.persistent && <span className="ml-2 text-[color:var(--color-noctua-amber)]">{t('services.persistent')}</span>}
               </div>
             )}
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Nombre del servicio</label>
+              <label className={labelClass}>{t('services.field_service_name')}</label>
               <input type="text" placeholder={selectedTemplate ? 'mi-' + selectedTemplate.slug : 'nombre'} value={tplName} onChange={e => setTplName(e.target.value)} className={inputClass} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Puerto de acceso (1024 – 9999)</label>
+              <label className={labelClass}>{t('services.field_port')}</label>
               <input type="number" placeholder="8090" min={1024} max={9999} value={tplPort} onChange={e => setTplPort(e.target.value)} className={inputClass + ' tabular-nums'} />
             </div>
             <div className="flex gap-3 mt-2">
-              <button onClick={() => setModalMode('choice')} disabled={submitting} className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50">Atrás</button>
-              <button onClick={handleSubmitTemplate} disabled={submitting || !selectedTemplate} className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors duration-200 disabled:opacity-50">{submitting ? 'Creando...' : 'Crear servicio'}</button>
+              <button onClick={() => setModalMode('choice')} disabled={submitting} className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50">{t('services.back')}</button>
+              <button onClick={handleSubmitTemplate} disabled={submitting || !selectedTemplate} className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors duration-200 disabled:opacity-50">{submitting ? t('services.creating') : t('services.create_service')}</button>
             </div>
           </div>
         )}
@@ -623,12 +626,12 @@ export default function ServicesPage() {
             style={{ background: 'rgba(15,14,23,0.98)', backdropFilter: 'blur(20px)' }}
           >
             <div>
-              <h2 className="text-lg font-bold text-white">Eliminar servicios</h2>
-              <p className="text-sm text-gray-400 mt-1">Seleccioná los servicios que querés eliminar. Esta acción no se puede deshacer.</p>
+              <h2 className="text-lg font-bold text-white">{t('services.delete_modal_title')}</h2>
+              <p className="text-sm text-gray-400 mt-1">{t('services.delete_modal_subtitle')}</p>
             </div>
             <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
               {services.map(svc => {
-                const tpl = svc.template_id ? templates.find(t => t.id === svc.template_id) : null
+                const tpl = svc.template_id ? templates.find(tmpl => tmpl.id === svc.template_id) : null
                 const checked = selectedToDelete.has(svc.id)
                 return (
                   <button
@@ -653,11 +656,11 @@ export default function ServicesPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-white truncate">{svc.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{tpl ? tpl.name : 'Externo'}</p>
+                      <p className="text-xs text-gray-500 truncate">{tpl ? tpl.name : t('services.external_label')}</p>
                     </div>
                     {svc.container_status && (
-                      <span className={`text-xs px-2 py-0.5 rounded-md border ${containerStatusConfig[svc.container_status]?.badge}`}>
-                        {containerStatusConfig[svc.container_status]?.label}
+                      <span className={`text-xs px-2 py-0.5 rounded-md border ${containerStyles[svc.container_status]?.badge}`}>
+                        {t(('services.cs_' + svc.container_status) as any)}
                       </span>
                     )}
                   </button>
@@ -670,14 +673,14 @@ export default function ServicesPage() {
                 disabled={deleting}
                 className="flex-1 px-4 py-3 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors duration-200 disabled:opacity-50"
               >
-                Cancelar
+                {t('services.cancel')}
               </button>
               <button
                 onClick={handleBulkDelete}
                 disabled={deleting || selectedToDelete.size === 0}
                 className="flex-1 px-4 py-3 rounded-lg text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {deleting ? 'Eliminando...' : `Eliminar ${selectedToDelete.size > 0 ? `(${selectedToDelete.size})` : ''}`}
+                {deleting ? t('services.deleting') : `${t('services.delete_btn')}${selectedToDelete.size > 0 ? ` (${selectedToDelete.size})` : ''}`}
               </button>
             </div>
           </div>

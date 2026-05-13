@@ -241,18 +241,17 @@ html {
 
 const TECH = ['Laravel','n8n','WordPress','Redis','PostgreSQL','Docker','Python','FastAPI','MySQL','Horizon']
 const CARDS = [
-  { n:'01', e:'Detección en segundos', t:'Vigilancia que nunca descansa', d:'Métricas de CPU, memoria y latencia reportadas cada 30 segundos. noctua detecta anomalías antes de que tus usuarios las sientan.', tg:'metrics-agent · heartbeat · sidecar Docker' },
-  { n:'02', e:'Alertas sin ruido', t:'Solo te avisamos cuando importa', d:'Define umbrales por severidad y fallos consecutivos. El motor filtra picos transitorios y dispara alertas reales con contexto completo.', tg:'alert-engine · consecutive_failures · severity' },
-  { n:'03', e:'Historial colaborativo', t:'Del incidente al postmortem sin fricción', d:'Documenta causa raíz, notas de resolución y tags. El Operador actúa, el Admin supervisa, el equipo aprende.', tg:'historial · resolution_notes · tags' },
-  { n:'04', e:'Plantillas Docker', t:'Provisiona servicios en un clic', d:'Laravel, n8n, WordPress, Redis listos para levantar. Load generator incluido para demos realistas desde el primer minuto.', tg:'container-manager · load-generator · k6' },
+  { n:'01', e:'Four Golden Signals', t:'Métricas que realmente importan', d:'Latencia (promedio, P95, P99), tráfico, error rate, uso de CPU y memoria reportados cada 30 segundos vía API key. noctua detecta degradaciones antes de que lleguen a tus usuarios.', tg:'response_time · p95 · p99 · cpu_usage · memory_usage · uptime_24h' },
+  { n:'02', e:'Motor de evaluación dinámica', t:'Alertas sin fatiga de alertas', d:'Define umbrales con ventana de fallas consecutivas. El motor evalúa cada métrica con operadores configurables y solo crea un incidente cuando N mediciones seguidas violan el umbral sin falsos positivos.', tg:'consecutive_failures · rule-evaluator · operators · severity' },
+  { n:'03', e:'Ciclo de vida de incidentes', t:'Del incidente al postmortem sin fricción', d:'Máquina de estados auditable: triggered → acknowledged → resolved. El Operador actúa, el Admin supervisa, el equipo aprende. Timestamps y responsables registrados en cada transición.', tg:'state-machine · acknowledge · resolve · audit-trail' },
+  { n:'04', e:'Provisioning con plantillas', t:'Levanta servicios en un clic', d:'Laravel, WordPress, Node.js, PostgreSQL y más, listos para desplegar vía socket Docker. Gestión completa del ciclo de vida del contenedor directamente desde noctua. Límite configurable, persistencia selectiva.', tg:'docker-socket · container-manager · 7-plantillas · host-port' },
 ]
 const HOW = [
-  { n:'01', t:'Registrate como Admin', d:'Crea tu equipo en segundos. Recibís un email de bienvenida y quedás listo para invitar colaboradores.' },
-  { n:'02', t:'Registra un servicio', d:'Servicio externo o con plantilla Docker. Obtenés una API key única que el sidecar usa para reportar métricas.' },
-  { n:'03', t:'Define reglas de alerta', d:'Umbrales por métrica, severidad y fallos consecutivos. noctua aprende el baseline de tu servicio.' },
-  { n:'04', t:'Recibí alertas cuando importa', d:'Email con diseño dark-mode. El Operador documenta, el Admin supervisa. Historial siempre disponible.' },
+  { n:'01', t:'Registrate y creá tu equipo', d:'Registro público en segundos. Definís el nombre del equipo e invitás colaboradores por correo. Cada miembro recibe el rol que le corresponde: admin, operator o viewer.' },
+  { n:'02', t:'Conecta un servicio', d:'Externo o levantado desde plantilla Docker. Obtenés una API key única que el agente usa para reportar métricas vía REST cada 30 segundos.' },
+  { n:'03', t:'Configura tus reglas de alerta', d:'Elige la métrica, el operador, el umbral y cuántas fallas consecutivas disparan el incidente. noctua filtra picos y solo alerta cuando hay un problema sostenido.' },
+  { n:'04', t:'Recibe solo las alertas que importan', d:'Email en diseño dark-mode o webhook a Slack. El Operador documenta el acknowledge, el Admin supervisa. Cada incidente queda auditado con marca de tiempo y responsable.' },
 ]
-const FMQ_ITEMS = Array(10).fill(null)
 
 const Arr = ({ s = 14 }: { s?: number }) => (
   <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -399,9 +398,9 @@ export default function LandingPage() {
 
       {/* ── HERO ── */}
       <section className="hero">
-        <div className="pill"><span className="pdot"/>MONITOREO EN TIEMPO REAL</div>
+        <div className="pill"><span className="pdot"/>MONITOREO · PROVISIONING · ALERTAS INTELIGENTES</div>
         <h1 className="h1">Vigila mientras<br/><span className="shine">duermes</span></h1>
-        <p className="sub">noctua detecta, alerta y documenta cada incidente antes de que tus usuarios lo noten. Vigilancia continua para equipos que no pueden fallar.</p>
+        <p className="sub">Monitoreo con los Four Golden Signals, provisioning de stacks Docker y alertas sin ruido. Todo bajo un mismo panel. Soberanía total de tus datos.</p>
         <div className="hbtns">
           {/* 2. "Inicia sesión" a la izq y color principal MODIFICADO A FONDO BLANCO PARA EMPEZAR GRATIS */}
           <Link to="/login" className="ba ba-lg">Inicia sesión</Link>
@@ -415,7 +414,7 @@ export default function LandingPage() {
 
       {/* ── STATS ── */}
       <div className="stats" ref={statsRef}>
-        {[{n:'99.97%',l:'Uptime promedio'},{n:'<3s',l:'Tiempo de detección'},{n:'24/7',l:'Vigilancia continua'},{n:'6+',l:'Plantillas Docker'}].map((s,i) => (
+        {[{n:'9',l:'Métricas curadas (Golden Signals)'},{n:'<30s',l:'Ciclo de ingesta de métricas'},{n:'7',l:'Plantillas Docker listas'},{n:'3',l:'Roles con control granular'}].map((s,i) => (
           <div key={s.l} className={`stat${statsV?' vis':''}`} style={{ transitionDelay:`${i*.08}s` }}>
             <div className="stn">{s.n}</div><div className="stl">{s.l}</div>
           </div>
@@ -424,7 +423,7 @@ export default function LandingPage() {
 
       {/* ── MARQUEE ── */}
       <div className="mqs">
-        <p className="mqlbl">Compatible con tu stack</p>
+        <p className="mqlbl">Monitorea cualquier stack. Provisiona en segundos.</p>
         <div className="mqw">
           <div className="mqt">
             {techX2.map((t,i) => <div key={i} className="mqi"><div className="mqic">{t[0]}</div>{t}</div>)}
@@ -436,9 +435,9 @@ export default function LandingPage() {
       <section className="prod" id="prod">
         <div className="prod-in">
           <div className="ptxt">
-            <span className="stag">// DASHBOARD</span>
-            <h2 className="stitle">Todo tu stack<br/>Un solo panel</h2>
-            <p className="sdesc">Métricas, servicios, incidentes y equipo en tiempo real. Sin configuración manual.</p>
+            <span className="stag">// PANEL DE CONTROL</span>
+            <h2 className="stitle">Nueve métricas<br/>Un dashboard</h2>
+            <p className="sdesc">Latencia, tráfico, errores, saturación y disponibilidad. Los Four Golden Signals de Google SRE más métricas propias, en un panel colaborativo diseñado para equipos que no pueden fallar.</p>
             <Link to="/register" className="ba">Probar ahora<Arr s={13}/></Link>
           </div>
           <div className="mk lg">
@@ -446,11 +445,11 @@ export default function LandingPage() {
               <div className="mkdots">
                 {['#ff5f57','#febc2e','#28c840'].map(c => <div key={c} className="mkdot" style={{ background:c }}/>)}
               </div>
-              <div className="mktitle">noctua — dashboard</div>
+              <div className="mktitle">noctua dashboard</div>
             </div>
             <div className="mkbody">
               <div className="mkmet">
-                {[{l:'Uptime',v:'99.97%',c:'#34d399'},{l:'P95',v:'142ms',c:'#D9A441'},{l:'Alertas',v:'2',c:'#f87171'}].map(m => (
+                {[{l:'Uptime 24h',v:'99.97%',c:'#34d399'},{l:'P95',v:'142ms',c:'#D9A441'},{l:'Incidentes',v:'2',c:'#f87171'}].map(m => (
                   <div key={m.l} className="mkm"><div className="mkml">{m.l}</div><div className="mkmv" style={{ color:m.c }}>{m.v}</div></div>
                 ))}
               </div>
@@ -461,7 +460,7 @@ export default function LandingPage() {
                   <path d="M0,36 C40,30 90,16 140,26 S240,6 290,20 S390,2 480,16 L480,52 L0,52 Z" fill="url(#cg5)"/>
                 </svg>
               </div>
-              {[{n:'API Pagos',s:'activo',c:'#34d399'},{n:'API Inventario',s:'warning',c:'#D9A441'},{n:'API Notificaciones',s:'crítico',c:'#f87171'}].map(r => (
+              {[{n:'api-pagos',s:'activo',c:'#34d399'},{n:'api-inventario',s:'degradado',c:'#D9A441'},{n:'worker-notificaciones',s:'crítico',c:'#f87171'}].map(r => (
                 <div key={r.n} className="mkrow"><div className="mkrd" style={{ background:r.c }}/><div className="mkrn">{r.n}</div><div className="mkrb">{r.s}</div></div>
               ))}
             </div>
@@ -474,9 +473,9 @@ export default function LandingPage() {
         <div className="phglow"/>
         {/* 4. Efecto de barrido luminoso (AURA BLANCA A ÁMBAR) */}
         <h2 className={`phtxt ${phV ? 'sweep' : ''}`}>
-          Vigilancia que nunca descansa
+          Del fallo silencioso<br/>a la alerta accionable
         </h2>
-        <p className="phsub">Métricas cada 30 segundos. Alertas sin ruido. Historial documentado.</p>
+        <p className="phsub">noctua evalúa cada métrica contra tus reglas, filtra picos transitorios y solo dispara cuando hay un problema real y sostenido.</p>
       </section>
 
       {/* ── STICKY CARDS ── */}
@@ -484,8 +483,8 @@ export default function LandingPage() {
         <div className="si">
           <div className="sl">
             <span className="stag">// CARACTERÍSTICAS</span>
-            <h2 className="slt">Construido para equipos que no pueden fallar</h2>
-            <p className="sld">Cada función de noctua está diseñada para reducir el tiempo entre el problema y la solución.</p>
+            <h2 className="slt">Monitoreo y provisioning Integrados desde el día uno</h2>
+            <p className="sld">Cada función de noctua reduce el tiempo entre el problema y la solución sin agentes complejos ni stacks de observabilidad separados.</p>
             <div className="dots">{CARDS.map((_,i) => <div key={i} className={`dot${card===i?' on':''}`}/>)}</div>
           </div>
           <div className="sr">
@@ -508,7 +507,7 @@ export default function LandingPage() {
           <div className="howtxt">
             <span className="stag">// CÓMO FUNCIONA</span>
             <h2 className="stitle" style={{ marginBottom:'1rem' }}>De cero a monitoreado<br/>en minutos</h2>
-            <p className="sdesc">Sin agentes complejos. Sin YAML interminable.</p>
+            <p className="sdesc">Sin agentes propietarios. Sin YAML interminable. Un comando para levantar, un dashboard para todo.</p>
             <Link to="/register" className="bgb" style={{ fontSize:'.88rem', padding:'.65rem 1.4rem', marginTop:'.5rem', display:'inline-flex', alignItems:'center', gap:'.45rem' }}>
               Empezar gratis<Arr s={13}/>
             </Link>
@@ -530,9 +529,9 @@ export default function LandingPage() {
           {[180,360,540,740].map((sz,i) => <div key={i} className={`cwave${waveV?' on':''}`} style={{ width:sz,height:sz }}/>)}
         </div>
         <div className="ctabody">
-          <span className="stag" style={{ display:'block', marginBottom:'.75rem' }}>// EMPEZÁ HOY</span>
-          <h2 className="ctatitle">Tu infraestructura nunca duerme<br/><span style={{ color:'#D9A441' }}>noctua tampoco</span></h2>
-          <p className="ctasub">Monitoreo continuo, alertas inteligentes y trazabilidad completa.</p>
+          <span className="stag" style={{ display:'block', marginBottom:'.75rem' }}>// EMPIEZA HOY</span>
+          <h2 className="ctatitle">Tu infraestructura<br/>nunca duerme<br/><span style={{ color:'#D9A441' }}>noctua tampoco</span></h2>
+          <p className="ctasub">Monitoreo inteligente, provisioning Docker y alertas sin ruido. Self-hosted. Sin tarjeta de crédito.</p>
           <div className="ctabtns">
             {/* 2. "Inicia sesión" a la izq y color principal */}
             <Link to="/login" className="ba ba-lg">Inicia sesión</Link>
@@ -545,7 +544,7 @@ export default function LandingPage() {
       <div className="fmq">
         <div className="fmqt">
           {Array(20).fill(null).map((_,i) => (
-            <div key={i} className="fmqi">n<span>o</span>ctua • VIGILANCIA 24/7 •&nbsp;</div>
+            <div key={i} className="fmqi">n<span>o</span>ctua • VIGILA MIENTRAS DORMÍS •&nbsp;</div>
           ))}
         </div>
       </div>
@@ -560,7 +559,7 @@ export default function LandingPage() {
           <li><Link to="/login"    style={{ fontSize:'.76rem', color:'rgba(255,255,255,.35)', fontWeight:500 }}>Iniciar sesión</Link></li>
           <li><Link to="/register" style={{ fontSize:'.76rem', color:'rgba(255,255,255,.35)', fontWeight:500 }}>Registro</Link></li>
         </ul>
-        <div className="fcopy">© 2026 noctua — Bucaramanga, Colombia</div>
+        <div className="fcopy">© 2026 noctua Bucaramanga, Colombia</div>
       </footer>
     </div>
   )

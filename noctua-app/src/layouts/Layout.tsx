@@ -1,22 +1,11 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
 import AuroraBackground from '../components/AuroraBackground'
 import NoctuaLoader from '../components/NoctuaLoader'
-
-// Cambio 4: Rutas actualizadas con el prefijo /app
-const allNavItems = [
-  { label: 'Dashboard',        path: '/app/dashboard',   page: 'dashboard'   },
-  { label: 'Servicios',        path: '/app/services',    page: 'services'    },
-  { label: 'Reglas de alerta', path: '/app/alert-rules', page: 'alert-rules' },
-  { label: 'Incidentes',       path: '/app/incidents',   page: 'incidents'   },
-  { label: 'Canales',          path: '/app/channels',    page: 'channels'    },
-  { label: 'Equipo',           path: '/app/team',        page: 'team'        },
-  { label: 'Actividad',        path: '/app/activity',    page: 'activity'    },
-  { label: 'Historial',        path: '/app/historial',   page: 'historial'   },
-]
 
 function useOffline() {
   const [offline, setOffline] = useState(!navigator.onLine)
@@ -40,6 +29,18 @@ export default function Layout() {
   const { user }  = useAuth()
   const { can }   = usePermissions()
   const offline   = useOffline()
+  const { t }     = useTranslation()
+
+  const allNavItems = [
+    { label: t('nav.dashboard'),   path: '/app/dashboard',   page: 'dashboard'   },
+    { label: t('nav.services'),    path: '/app/services',    page: 'services'    },
+    { label: t('nav.alert_rules'), path: '/app/alert-rules', page: 'alert-rules' },
+    { label: t('nav.incidents'),   path: '/app/incidents',   page: 'incidents'   },
+    { label: t('nav.channels'),    path: '/app/channels',    page: 'channels'    },
+    { label: t('nav.team'),        path: '/app/team',        page: 'team'        },
+    { label: t('nav.activity'),    path: '/app/activity',    page: 'activity'    },
+    { label: t('nav.historial'),   path: '/app/historial',   page: 'historial'   },
+  ]
 
   const navItems = allNavItems.filter(item => can(item.page))
 
@@ -79,7 +80,7 @@ export default function Layout() {
             <span className="text-2xl font-bold tracking-tight">
               n<span className="text-[color:var(--color-noctua-amber)]">o</span>ctua
             </span>
-            <p className="text-xs text-gray-500 mt-1">Vigila mientras duermes</p>
+            <p className="text-xs text-gray-500 mt-1">{t('nav.tagline')}</p>
           </motion.div>
 
           {/* Nav items */}

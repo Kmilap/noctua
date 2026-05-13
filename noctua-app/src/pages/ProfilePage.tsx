@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
@@ -10,6 +10,7 @@ export default function ProfilePage() {
   const { token, user } = useAuth()
   const { role } = usePermissions()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const headers = { Authorization: `Bearer ${token}` }
 
   const initials = user?.name
@@ -40,11 +41,20 @@ export default function ProfilePage() {
   const [deletePassword, setDeletePassword]       = useState('')
   const [deleteError, setDeleteError]             = useState('')
 
-  // Notificaciones (UI only por ahora — backend no tiene el endpoint)
-  const [notifs, setNotifs] = useState(() => {
-    const saved = localStorage.getItem('noctua_notifs')
-    return saved ? JSON.parse(saved) : { critical: true, warning: true, daily: false, updates: false }
+  // Notificaciones — persisted independently of the profile form
+  const [notifs, setNotifs] = useState<{ critical: boolean; warning: boolean; daily: boolean; updates: boolean }>(() => {
+    try {
+      const saved = localStorage.getItem('noctua_notifs')
+      return saved ? JSON.parse(saved) : { critical: true, warning: true, daily: false, updates: false }
+    } catch {
+      return { critical: true, warning: true, daily: false, updates: false }
+    }
   })
+
+  // Auto-persist every time a toggle changes — independent of "Guardar cambios"
+  useEffect(() => {
+    localStorage.setItem('noctua_notifs', JSON.stringify(notifs))
+  }, [notifs])
 
   const handleSave = async () => {
     setSaving(true)
@@ -53,13 +63,11 @@ export default function ProfilePage() {
 
     // Validación básica de contraseña
     if (passNueva && passNueva !== passConfirm) {
-      setError('Las contraseñas nuevas no coinciden.')
+      setError(t('profile.error_passwords'))
       setSaving(false)
       return
     }
     
-    localStorage.setItem('noctua_notifs', JSON.stringify(notifs))
-
     try {
       const payload: any = { name: `${nombre} ${apellido}`.trim(), email }
       if (passNueva) {
@@ -69,14 +77,14 @@ export default function ProfilePage() {
       }
 
       await axios.patch('http://localhost:8000/api/user/profile', payload, { headers })
-      setSuccess('Perfil actualizado correctamente.')
+      setSuccess(t('profile.success'))
       setPassActual(''); setPassNueva(''); setPassConfirm('')
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 422) {
         const errs = err.response.data.errors ?? {}
         setError(Object.values(errs).flat().join(' '))
       } else {
-        setError('No se pudo guardar. Intentá de nuevo.')
+        setError(t('profile.error_save'))
       }
     } finally {
       setSaving(false)
@@ -98,12 +106,12 @@ export default function ProfilePage() {
       localStorage.removeItem('user')
       navigate('/login')
     } catch {
-      setError('No se pudo desactivar la cuenta.')
+      setError(t('profile.error_deactivate'))
     } finally { setSaving(false) }
   }
 
   const handleDelete = async () => {
-    if (!deletePassword) { setDeleteError('Ingresá tu contraseña.'); return }
+    if (!deletePassword) { setDeleteError(t('profile.error_password_required')); return }
     setSaving(true)
     setDeleteError('')
     try {
@@ -118,7 +126,7 @@ export default function ProfilePage() {
       if (axios.isAxiosError(err) && err.response?.data?.message) {
         setDeleteError(err.response.data.message)
       } else {
-        setDeleteError('No se pudo eliminar la cuenta.')
+        setDeleteError(t('profile.error_delete'))
       }
     } finally { setSaving(false) }
   }
@@ -138,8 +146,8 @@ export default function ProfilePage() {
       {/* Header */}
       <div>
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-white tracking-tight">Editar perfil</h1>
-          <Link to="/app/settings" className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/8 border border-white/8 hover:border-white/15 transition-all duration-200" title="Configuración">
+          <h1 className="text-3xl font-bold text-white tracking-tight">{t('profile.title')}</h1>
+          <Link to="/app/settings" className="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/8 border border-white/8 hover:border-white/15 transition-all duration-200" title={t('nav.settings')}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" style={{display:'none'}}/>
               <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58Z"/>
@@ -147,7 +155,7 @@ export default function ProfilePage() {
             </svg>
           </Link>
         </div>
-        <p className="text-sm text-gray-400 mt-1">Actualizá tu información personal y preferencias de cuenta.</p>
+        <p className="text-sm text-gray-400 mt-1">{t('profile.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-5 items-start">
@@ -179,7 +187,7 @@ export default function ProfilePage() {
                   {rolLabel}
                 </span>
                 <button className="block text-sm text-gray-400 hover:text-white transition-colors duration-200">
-                  Cambiar avatar
+                  {t('profile.change_avatar')}
                 </button>
               </div>
             </div>
@@ -187,29 +195,29 @@ export default function ProfilePage() {
 
           {/* Información personal */}
           <div className={sectionClass} style={sectionStyle}>
-            <h2 className="text-base font-semibold text-white">Información personal</h2>
+            <h2 className="text-base font-semibold text-white">{t('profile.personal_info')}</h2>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Nombre</label>
+                <label className={labelClass}>{t('profile.first_name')}</label>
                 <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} className={inputClass} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Apellido</label>
+                <label className={labelClass}>{t('profile.last_name')}</label>
                 <input type="text" value={apellido} onChange={e => setApellido(e.target.value)} className={inputClass} />
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Correo electrónico</label>
+              <label className={labelClass}>{t('profile.email')}</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputClass} />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Cargo / Rol en el equipo</label>
+              <label className={labelClass}>{t('profile.job_title')}</label>
               <input
                 type="text"
-                placeholder="ej. Líder técnica"
+                placeholder={t('profile.job_placeholder')}
                 value={cargo}
                 onChange={e => setCargo(e.target.value)}
                 className={inputClass}
@@ -219,10 +227,10 @@ export default function ProfilePage() {
 
           {/* Seguridad */}
           <div className={sectionClass} style={sectionStyle}>
-            <h2 className="text-base font-semibold text-white">Seguridad</h2>
+            <h2 className="text-base font-semibold text-white">{t('profile.security')}</h2>
 
             <div className="flex flex-col gap-1.5">
-              <label className={labelClass}>Contraseña actual</label>
+              <label className={labelClass}>{t('profile.current_password')}</label>
               <div className="relative">
                 <input type={showPassActual ? 'text' : 'password'} placeholder="••••••••" value={passActual} onChange={e => setPassActual(e.target.value)} className={inputClass + ' pr-10'} />
                 <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => setShowPassActual(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
@@ -233,7 +241,7 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Nueva contraseña</label>
+                <label className={labelClass}>{t('profile.new_password')}</label>
                 <div className="relative">
                   <input type={showPassNueva ? 'text' : 'password'} placeholder="••••••••" value={passNueva} onChange={e => setPassNueva(e.target.value)} className={inputClass + ' pr-10'} />
                   <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => setShowPassNueva(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
@@ -242,7 +250,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className={labelClass}>Confirmar contraseña</label>
+                <label className={labelClass}>{t('profile.confirm_password')}</label>
                 <div className="relative">
                   <input type={showPassConfirm ? 'text' : 'password'} placeholder="••••••••" value={passConfirm} onChange={e => setPassConfirm(e.target.value)} className={inputClass + ' pr-10'} />
                   <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => setShowPassConfirm(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors" tabIndex={-1}>
@@ -265,7 +273,7 @@ export default function ProfilePage() {
               disabled:opacity-50
             "
           >
-            {saving ? 'Guardando...' : 'Guardar cambios'}
+            {saving ? t('profile.saving') : t('profile.save_changes')}
           </button>
         </div>
 
@@ -275,31 +283,31 @@ export default function ProfilePage() {
           {/* Zona de peligro */}
           <div className={sectionClass} style={{ ...sectionStyle, borderColor: 'rgba(239,68,68,0.2)' }}>
             <div>
-              <h2 className="text-base font-semibold text-white">Zona de peligro</h2>
-              <p className="text-xs text-gray-500 mt-1">Estas acciones son irreversibles.</p>
+              <h2 className="text-base font-semibold text-white">{t('profile.danger_zone')}</h2>
+              <p className="text-xs text-gray-500 mt-1">{t('profile.danger_zone_hint')}</p>
             </div>
             
             <button onClick={handleLogout}
               className="w-full py-2.5 rounded-xl text-sm font-semibold border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors duration-200">
-              Cerrar sesión
+              {t('profile.logout')}
             </button>
 
             {!confirmDeactivate ? (
               <button onClick={() => setConfirmDeactivate(true)}
                 className="w-full py-2.5 rounded-xl text-sm font-bold bg-red-500/15 border border-red-500/30 text-red-400 hover:bg-red-500/25 transition-colors duration-200">
-                Desactivar cuenta
+                {t('profile.deactivate')}
               </button>
             ) : (
               <div className="flex flex-col gap-2">
-                <p className="text-xs text-gray-400">Recibirás un correo para reactivarla cuando quieras.</p>
+                <p className="text-xs text-gray-400">{t('profile.reactivation_hint')}</p>
                 <div className="flex gap-2">
                   <button onClick={() => setConfirmDeactivate(false)}
                     className="flex-1 py-2 rounded-lg text-xs font-semibold text-gray-400 bg-white/5 border border-white/10 transition-colors">
-                    Cancelar
+                    {t('profile.cancel')}
                   </button>
                   <button onClick={handleDeactivate} disabled={saving}
                     className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-red-500/80 hover:bg-red-500 transition-colors disabled:opacity-50">
-                    {saving ? 'Procesando...' : 'Confirmar'}
+                    {saving ? t('profile.processing') : t('profile.confirm')}
                   </button>
                 </div>
               </div>
@@ -308,22 +316,22 @@ export default function ProfilePage() {
             {!confirmDelete ? (
               <button onClick={() => setConfirmDelete(true)}
                 className="w-full py-2.5 rounded-xl text-sm font-bold bg-red-600/20 border border-red-600/40 text-red-300 hover:bg-red-600/30 transition-colors duration-200">
-                Eliminar cuenta permanentemente
+                {t('profile.delete')}
               </button>
             ) : (
               <div className="flex flex-col gap-2">
-                <input type="password" placeholder="Confirmá tu contraseña" value={deletePassword}
+                <input type="password" placeholder={t('profile.delete_confirm_placeholder')} value={deletePassword}
                   onChange={e => setDeletePassword(e.target.value)}
                   className="w-full bg-white/5 text-white placeholder-gray-600 rounded-xl px-3 py-2 text-sm outline-none border border-red-500/30 focus:border-red-500/60 transition-colors" />
                 {deleteError && <p className="text-xs text-red-400">{deleteError}</p>}
                 <div className="flex gap-2">
                   <button onClick={() => { setConfirmDelete(false); setDeletePassword(''); setDeleteError('') }}
                     className="flex-1 py-2 rounded-lg text-xs font-semibold text-gray-400 bg-white/5 border border-white/10 transition-colors">
-                    Cancelar
+                    {t('profile.cancel')}
                   </button>
                   <button onClick={handleDelete} disabled={saving}
                     className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50">
-                    {saving ? 'Eliminando...' : 'Eliminar definitivamente'}
+                    {saving ? t('profile.deleting') : t('profile.delete_permanently')}
                   </button>
                 </div>
               </div>
@@ -333,20 +341,20 @@ export default function ProfilePage() {
           {/* Notificaciones */}
           <div className={sectionClass} style={sectionStyle}>
             <div>
-              <h2 className="text-base font-semibold text-white">Notificaciones</h2>
-              <p className="text-xs text-gray-500 mt-1">Elegí cómo y cuándo te avisamos.</p>
+              <h2 className="text-base font-semibold text-white">{t('profile.notifications_title')}</h2>
+              <p className="text-xs text-gray-500 mt-1">{t('profile.notifications_hint')}</p>
             </div>
             {[
-              { key: 'critical', label: 'Incidentes críticos' },
-              { key: 'warning',  label: 'Alertas de warning' },
-              { key: 'daily',    label: 'Resumen diario' },
-              { key: 'updates',  label: 'Actualizaciones del producto' },
+              { key: 'critical', label: t('profile.notif_critical') },
+              { key: 'warning',  label: t('profile.notif_warning') },
+              { key: 'daily',    label: t('profile.notif_daily') },
+              { key: 'updates',  label: t('profile.notif_updates') },
             ].map(item => (
               <div key={item.key} className="flex items-center justify-between">
                 <span className="text-sm text-gray-300">{item.label}</span>
                 <ToggleSwitch
                   checked={notifs[item.key as keyof typeof notifs]}
-                  onChange={() => setNotifs((n: typeof notifs) => ({ ...n, [item.key]: !n[item.key as keyof typeof notifs] }))}
+                  onChange={(v) => setNotifs(n => ({ ...n, [item.key]: v }))}
                   size="sm"
                 />
               </div>

@@ -1,16 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import AuroraBackground from '../components/AuroraBackground'
 
 type Step = 1 | 2 | 3
 type OtpStatus = 'idle' | 'success' | 'error'
-
-const features = [
-  { icon: '🟡', text: 'Monitoreo en tiempo real' },
-  { icon: '⚡', text: 'Alertas sin falsos positivos' },
-  { icon: '🟡', text: 'Setup en 30 segundos' },
-]
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -28,6 +23,7 @@ function EyeIcon({ open }: { open: boolean }) {
 }
 
 function PasswordStrength({ password }: { password: string }) {
+  const { t } = useTranslation()
   const checks = [
     password.length >= 8,
     /[A-Z]/.test(password),
@@ -37,7 +33,7 @@ function PasswordStrength({ password }: { password: string }) {
   const score = checks.filter(Boolean).length
   const colors = ['', 'bg-red-500', 'bg-amber-500', 'bg-yellow-400', 'bg-emerald-400']
   const textColors = ['', 'text-red-400', 'text-amber-400', 'text-yellow-300', 'text-emerald-400']
-  const labels = ['', 'Débil', 'Regular', 'Buena', 'Segura']
+  const labels = ['', t('register.strength_weak'), t('register.strength_fair'), t('register.strength_good'), t('register.strength_strong')]
   if (!password) return null
   return (
     <div className="flex flex-col gap-1.5 mt-2">
@@ -121,14 +117,8 @@ function Stepper({ current }: { current: Step }) {
   )
 }
 
-const stepLabels: Record<Step, string> = {
-  1: 'Ingresa tu correo',
-  2: 'Verifica el código',
-  3: 'Crea tu nueva contraseña',
-}
-
-
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation()
   const [step, setStep]         = useState<Step>(1)
   const [email, setEmail]       = useState('')
   const [otp, setOtp]           = useState('')           // código real generado
@@ -144,6 +134,18 @@ export default function ForgotPasswordPage() {
   const [canResend, setCanResend] = useState(false)
 
   const inputRefs = useRef<Array<HTMLInputElement | null>>([])
+
+  const features = [
+    { icon: '🟡', text: t('forgot_password.feature_monitoring') },
+    { icon: '⚡', text: t('forgot_password.feature_alerts') },
+    { icon: '🟡', text: t('forgot_password.feature_setup') },
+  ]
+
+  const stepLabels: Record<Step, string> = {
+    1: t('forgot_password.step1_label'),
+    2: t('forgot_password.step2_label'),
+    3: t('forgot_password.step3_label'),
+  }
 
   // Countdown para reenviar
   useEffect(() => {
@@ -169,7 +171,7 @@ export default function ForgotPasswordPage() {
       setOtpStatus('idle')
       setStep(2)
     } catch {
-      setError('No se pudo enviar el código. Intentá de nuevo.')
+      setError(t('forgot_password.step1_error'))
     } finally {
       setLoading(false)
     }
@@ -244,8 +246,8 @@ export default function ForgotPasswordPage() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password !== confirm) { setError('Las contraseñas no coinciden.'); return }
-    if (password.length < 8)  { setError('Mínimo 8 caracteres.'); return }
+    if (password !== confirm) { setError(t('forgot_password.step3_error_match')); return }
+    if (password.length < 8)  { setError(t('forgot_password.step3_error_length')); return }
     setLoading(true)
     setError('')
     try {
@@ -257,7 +259,7 @@ export default function ForgotPasswordPage() {
       })
       window.location.href = '/login'
     } catch {
-      setError('Error al restablecer. Intentá de nuevo.')
+      setError(t('forgot_password.step3_error_reset'))
     } finally {
       setLoading(false)
     }
@@ -306,14 +308,14 @@ export default function ForgotPasswordPage() {
             <h1 className="text-5xl font-bold tracking-tight text-white">
               n<span className="text-[color:var(--color-noctua-amber)]">o</span>ctua
             </h1>
-            <p className="text-gray-400 mt-3 text-lg">Vigila mientras duermes</p>
+            <p className="text-gray-400 mt-3 text-lg">{t('forgot_password.tagline')}</p>
             <div className="w-10 h-0.5 bg-[color:var(--color-noctua-amber)] mt-3 rounded-full" />
           </div>
 
           <div className="flex flex-col gap-4">
             <Stepper current={step} />
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Paso {step} de 3</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t('forgot_password.step_label')} {step} {t('forgot_password.step_of')}</p>
               <p className="text-sm text-gray-300 mt-1">— {stepLabels[step]}</p>
             </div>
           </div>
@@ -327,7 +329,7 @@ export default function ForgotPasswordPage() {
             ))}
           </div>
 
-          <p className="text-xs text-gray-600">Noctua v1.0 — Hecho en Bucaramanga, Colombia</p>
+          <p className="text-xs text-gray-600">{t('forgot_password.footer')}</p>
         </div>
 
         {/* Derecha */}
@@ -353,12 +355,12 @@ export default function ForgotPasswordPage() {
                     <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Recuperar contraseña</h2>
-                <p className="text-sm text-gray-400 mt-1 mb-6">Te enviaremos un código de verificación a tu correo.</p>
+                <h2 className="text-2xl font-bold text-white tracking-tight">{t('forgot_password.step1_title')}</h2>
+                <p className="text-sm text-gray-400 mt-1 mb-6">{t('forgot_password.step1_subtitle')}</p>
 
                 <form onSubmit={handleSendEmail} className="flex flex-col gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">Correo electrónico</label>
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">{t('forgot_password.step1_email')}</label>
                     <div className="relative">
                       <input
                         type="email"
@@ -376,11 +378,11 @@ export default function ForgotPasswordPage() {
                     disabled={loading}
                     className="w-full py-3.5 rounded-xl bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] text-black font-bold text-sm transition-colors duration-200 glow-amber disabled:opacity-50 mt-2"
                   >
-                    {loading ? 'Enviando...' : 'Enviar código de verificación'}
+                    {loading ? t('forgot_password.step1_sending') : t('forgot_password.step1_submit')}
                   </button>
                 </form>
                 <Link to="/login" className="block text-center text-sm text-gray-500 hover:text-gray-300 transition-colors mt-5">
-                   Volver al inicio de sesión
+                   {t('forgot_password.step1_back')}
                 </Link>
               </>
             )}
@@ -394,12 +396,12 @@ export default function ForgotPasswordPage() {
 
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-white tracking-tight">
-                    {otpStatus === 'error' ? 'Código incorrecto' : '¡Revisa tu correo!'}
+                    {otpStatus === 'error' ? t('forgot_password.step2_title_error') : t('forgot_password.step2_title')}
                   </h2>
                   <p className="text-sm text-gray-400 mt-2">
                     {otpStatus === 'error'
-                      ? 'El código no coincide. Intentá de nuevo.'
-                      : 'Ingresa el código de 6 dígitos que enviamos a'}
+                      ? t('forgot_password.step2_subtitle_error')
+                      : t('forgot_password.step2_subtitle')}
                   </p>
                   {otpStatus !== 'error' && (
                     <p className="text-sm font-semibold text-[color:var(--color-noctua-amber)] mt-1">{email}</p>
@@ -438,28 +440,28 @@ export default function ForgotPasswordPage() {
 
                 {/* Hint de desarrollo */}
                 <p className="text-xs text-gray-600 text-center">
-                  💡 Revisa la consola del navegador para ver el código (entorno de desarrollo)
+                  {t('forgot_password.step2_dev_hint')}
                 </p>
 
                 {/* Reenviar */}
                 <div className="flex items-center gap-3 w-full justify-center">
-                  <p className="text-sm text-gray-500">¿No llegó?</p>
+                  <p className="text-sm text-gray-500">{t('forgot_password.step2_not_arrived')}</p>
                   <button
                     onClick={handleResend}
                     disabled={!canResend}
                     className={`text-sm font-semibold transition-colors ${canResend ? 'text-[color:var(--color-noctua-amber)] hover:underline' : 'text-gray-600 cursor-not-allowed'}`}
                   >
-                    Reenviar código
+                    {t('forgot_password.step2_resend')}
                   </button>
                   {!canResend && (
                     <span className="ml-auto text-xs text-gray-500 bg-white/5 border border-white/10 px-3 py-1 rounded-lg">
-                      en {countdown} seg →
+                      {t('forgot_password.step2_countdown', { count: countdown })}
                     </span>
                   )}
                 </div>
 
                 <Link to="/login" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
-                   Volver al inicio de sesión
+                   {t('forgot_password.step2_back')}
                 </Link>
               </div>
             )}
@@ -473,8 +475,8 @@ export default function ForgotPasswordPage() {
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-white tracking-tight">Nueva contraseña</h2>
-                <p className="text-sm text-gray-400 mt-1 mb-6">Elige una contraseña segura para proteger tu cuenta en Noctua.</p>
+                <h2 className="text-2xl font-bold text-white tracking-tight">{t('forgot_password.step3_title')}</h2>
+                <p className="text-sm text-gray-400 mt-1 mb-6">{t('forgot_password.step3_subtitle')}</p>
 
                 {error && (
                   <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3">{error}</div>
@@ -482,11 +484,11 @@ export default function ForgotPasswordPage() {
 
                 <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">Nueva contraseña</label>
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">{t('forgot_password.step3_new_pass')}</label>
                     <div className="relative">
                       <input
                         type={showPass ? 'text' : 'password'}
-                        placeholder="Mínimo 8 caracteres"
+                        placeholder={t('forgot_password.step3_min_chars')}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         className={inputClass + ' pr-16'}
@@ -507,11 +509,11 @@ export default function ForgotPasswordPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">Confirmar contraseña</label>
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 block">{t('forgot_password.step3_confirm')}</label>
                     <div className="relative">
                       <input
                         type={showConf ? 'text' : 'password'}
-                        placeholder="Repetí la contraseña"
+                        placeholder={t('forgot_password.step3_repeat')}
                         value={confirm}
                         onChange={e => setConfirm(e.target.value)}
                         className={inputClass + ' pr-16'}
@@ -535,12 +537,12 @@ export default function ForgotPasswordPage() {
                     disabled={loading}
                     className="w-full py-3.5 rounded-xl mt-1 bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] text-black font-bold text-sm transition-colors duration-200 glow-amber disabled:opacity-50"
                   >
-                    {loading ? 'Guardando...' : 'Restablecer contraseña'}
+                    {loading ? t('forgot_password.step3_saving') : t('forgot_password.step3_submit')}
                   </button>
                 </form>
 
                 <p className="text-xs text-gray-500 text-center mt-4">
-                  Tu sesión actual será cerrada en todos los dispositivos.
+                  {t('forgot_password.step3_session_note')}
                 </p>
               </>
             )}
