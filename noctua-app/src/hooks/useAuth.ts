@@ -1,29 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
 
 const API = 'http://localhost:8000/api'
 
-// Estado compartido a nivel de módulo — una sola fuente de verdad
-// para todos los componentes que llamen useAuth()
 let _token = localStorage.getItem('token')
 let _user  = (() => {
   try { const r = localStorage.getItem('user'); return r ? JSON.parse(r) : null }
   catch { return null }
 })()
 
-// Listeners para sincronizar todos los componentes suscritos
 const listeners = new Set<() => void>()
 const notify = () => listeners.forEach(fn => fn())
 
 export function useAuth() {
   const [, rerender] = useState(0)
 
-  // Suscribirse a cambios globales
-  useState(() => {
+  useEffect(() => {
     const trigger = () => rerender(n => n + 1)
     listeners.add(trigger)
-    return () => listeners.delete(trigger)
-  })
+    return () => { listeners.delete(trigger) }
+  }, [])
 
   const login = async (email: string, password: string) => {
     const res = await axios.post(`${API}/login`, { email, password })

@@ -67,6 +67,146 @@ const templateIconMap: Record<string, React.ReactNode> = {
   'workflow':  <Workflow size={18} />,
 }
 
+type ServiceCardProps = {
+  svc: Service
+  index: number
+  templates: ServiceTemplate[]
+  canManageContainers: boolean
+  actionLoading: Record<number, string>
+  newServiceKeys: Record<number, string>
+  copied: number | null
+  onContainerAction: (svc: Service, action: 'start' | 'stop' | 'restart') => void
+  onCopy: (svc: Service) => void
+}
+function ServiceCard({
+  svc, index, templates, canManageContainers,
+  actionLoading, newServiceKeys, copied,
+  onContainerAction, onCopy,
+}: ServiceCardProps) {
+    const cfg    = statusConfig[svc.status] ?? statusConfig.unknown
+    const csCfg  = svc.container_status ? containerStatusConfig[svc.container_status] : null
+    const tpl    = svc.template_id ? templates.find(t => t.id === svc.template_id) : null
+    const intervalLabel = svc.check_interval_seconds >= 60
+      ? (svc.check_interval_seconds / 60) + 'm'
+      : svc.check_interval_seconds + 's'
+    const isActioning = !!actionLoading[svc.id]
+    const serviceUrl  = svc.host_port ? 'http://localhost:' + String(svc.host_port) : ''
+    const portLabel   = svc.host_port ? 'localhost:' + String(svc.host_port) : ''
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: index * 0.05 }}
+        className="rounded-2xl px-6 py-5 flex flex-col gap-4 border border-white/8 hover:border-white/15 transition-all duration-300"
+        style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)' }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {tpl ? (
+              <div className="w-8 h-8 rounded-lg bg-[color:var(--color-noctua-amber)]/15 flex items-center justify-center shrink-0 text-[color:var(--color-noctua-amber)]">
+                {templateIconMap[tpl.icon] ?? <Code2 size={16} />}
+              </div>
+            ) : (
+              <span className={'w-2 h-2 rounded-full shrink-0 mt-0.5 ' + cfg.dot} />
+            )}
+            <div className="min-w-0">
+              <p className="text-base font-bold text-white truncate">{svc.name}</p>
+              {tpl && <p className="text-xs text-gray-500 truncate mt-0.5">{tpl.category}</p>}
+              {svc.url && !tpl && <p className="text-xs text-gray-500 truncate mt-0.5">{svc.url}</p>}
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <span className={'px-2.5 py-0.5 rounded-md text-xs font-semibold border ' + cfg.badge}>
+              {cfg.label}
+            </span>
+            <AnimatePresence mode="wait">
+              {csCfg && (
+                <motion.span
+                  key={svc.container_status}
+                  initial={{ opacity: 0, scale: 0.8, y: -4 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8, y: 4 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                  className={'flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ' + csCfg.badge}
+                >
+                  <span className={'w-1.5 h-1.5 rounded-full ' + csCfg.dot} />
+                  {csCfg.label}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: 'Intervalo',  value: tpl ? 'Puerto ' + (svc.host_port ?? '—') : intervalLabel },
+            { label: 'Plantilla',  value: tpl ? tpl.name : 'Externo' },
+            { label: 'Uptime 24h', value: svc.uptime_24h != null ? parseFloat(String(svc.uptime_24h)).toFixed(1) + '%' : '—' },
+          ].map(stat => (
+            <div key={stat.label}>
+              <p className="text-xs text-gray-500 mb-0.5">{stat.label}</p>
+              <p className="text-sm font-bold text-white tabular-nums truncate">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {tpl && canManageContainers && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onContainerAction(svc, 'start')}
+              disabled={isActioning || svc.container_status === 'running'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Play size={12} />
+              {actionLoading[svc.id] === 'start' ? '...' : 'Iniciar'}
+            </button>
+            <button
+              onClick={() => onContainerAction(svc, 'stop')}
+              disabled={isActioning || svc.container_status === 'stopped'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/8 hover:bg-white/12 text-gray-300 border border-white/10 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Square size={12} />
+              {actionLoading[svc.id] === 'stop' ? '...' : 'Detener'}
+            </button>
+            <button
+              onClick={() => onContainerAction(svc, 'restart')}
+              disabled={isActioning}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/8 hover:bg-white/12 text-gray-300 border border-white/10 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <RotateCcw size={12} />
+            </button>
+            {svc.container_status === 'running' && svc.host_port && (
+              <a href={serviceUrl} target="_blank" rel="noopener noreferrer"
+                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[color:var(--color-noctua-amber)]/15 hover:bg-[color:var(--color-noctua-amber)]/25 text-[color:var(--color-noctua-amber)] border border-[color:var(--color-noctua-amber)]/20 transition-colors duration-200">
+                <ExternalLink size={12} />{portLabel}
+              </a>
+            )}
+          </div>
+        )}
+
+        {!tpl && (
+          <div className="flex items-center gap-2">
+            <div
+              className="flex-1 bg-black/20 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono truncate"
+              style={{ color: newServiceKeys[svc.id] ? '#ef9f27' : '#9ca3af' }}
+            >
+              {newServiceKeys[svc.id] ? newServiceKeys[svc.id] : 'nct_sk_••••••••••••••••'}
+            </div>
+            {newServiceKeys[svc.id] && (
+              <button
+                onClick={() => onCopy(svc)}
+                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[color:var(--color-noctua-amber)]/15 hover:bg-[color:var(--color-noctua-amber)]/25 text-[color:var(--color-noctua-amber)] border border-[color:var(--color-noctua-amber)]/20 transition-colors duration-200"
+              >
+                {copied === svc.id ? '¡Copiado!' : 'Copiar'}
+              </button>
+            )}
+          </div>
+        )}
+      </motion.div>
+    )
+}
+
 export default function ServicesPage() {
   const { token } = useAuth()
   const { role }  = usePermissions()
@@ -258,132 +398,19 @@ export default function ServicesPage() {
   `
   const labelClass = 'text-xs font-semibold text-gray-400 uppercase tracking-wide'
 
-  // Card reutilizable para ambas secciones
-  const ServiceCard = ({ svc, index }: { svc: Service; index: number }) => {
-    const cfg    = statusConfig[svc.status] ?? statusConfig.unknown
-    const csCfg  = svc.container_status ? containerStatusConfig[svc.container_status] : null
-    const tpl    = svc.template_id ? templates.find(t => t.id === svc.template_id) : null
-    const intervalLabel = svc.check_interval_seconds >= 60
-      ? (svc.check_interval_seconds / 60) + 'm'
-      : svc.check_interval_seconds + 's'
-    const isActioning = !!actionLoading[svc.id]
-    const serviceUrl  = svc.host_port ? 'http://localhost:' + String(svc.host_port) : ''
-    const portLabel   = svc.host_port ? 'localhost:' + String(svc.host_port) : ''
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: index * 0.05 }}
-        className="rounded-2xl px-6 py-5 flex flex-col gap-4 border border-white/8 hover:border-white/15 transition-all duration-300"
-        style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)' }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            {tpl ? (
-              <div className="w-8 h-8 rounded-lg bg-[color:var(--color-noctua-amber)]/15 flex items-center justify-center shrink-0 text-[color:var(--color-noctua-amber)]">
-                {templateIconMap[tpl.icon] ?? <Code2 size={16} />}
-              </div>
-            ) : (
-              <span className={'w-2 h-2 rounded-full shrink-0 mt-0.5 ' + cfg.dot} />
-            )}
-            <div className="min-w-0">
-              <p className="text-base font-bold text-white truncate">{svc.name}</p>
-              {tpl && <p className="text-xs text-gray-500 truncate mt-0.5">{tpl.category}</p>}
-              {svc.url && !tpl && <p className="text-xs text-gray-500 truncate mt-0.5">{svc.url}</p>}
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <span className={'px-2.5 py-0.5 rounded-md text-xs font-semibold border ' + cfg.badge}>
-              {cfg.label}
-            </span>
-            <AnimatePresence mode="wait">
-              {csCfg && (
-                <motion.span
-                  key={svc.container_status}
-                  initial={{ opacity: 0, scale: 0.8, y: -4 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, y: 4 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                  className={'flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ' + csCfg.badge}
-                >
-                  <span className={'w-1.5 h-1.5 rounded-full ' + csCfg.dot} />
-                  {csCfg.label}
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'Intervalo',  value: tpl ? 'Puerto ' + (svc.host_port ?? '—') : intervalLabel },
-            { label: 'Plantilla',  value: tpl ? tpl.name : 'Externo' },
-            { label: 'Uptime 24h', value: svc.uptime_24h != null ? parseFloat(String(svc.uptime_24h)).toFixed(1) + '%' : '—' },
-          ].map(stat => (
-            <div key={stat.label}>
-              <p className="text-xs text-gray-500 mb-0.5">{stat.label}</p>
-              <p className="text-sm font-bold text-white tabular-nums truncate">{stat.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {tpl && canManageContainers && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleContainerAction(svc, 'start')}
-              disabled={isActioning || svc.container_status === 'running'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Play size={12} />
-              {actionLoading[svc.id] === 'start' ? '...' : 'Iniciar'}
-            </button>
-            <button
-              onClick={() => handleContainerAction(svc, 'stop')}
-              disabled={isActioning || svc.container_status === 'stopped'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/8 hover:bg-white/12 text-gray-300 border border-white/10 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Square size={12} />
-              {actionLoading[svc.id] === 'stop' ? '...' : 'Detener'}
-            </button>
-            <button
-              onClick={() => handleContainerAction(svc, 'restart')}
-              disabled={isActioning}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/8 hover:bg-white/12 text-gray-300 border border-white/10 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <RotateCcw size={12} />
-            </button>
-            {svc.container_status === 'running' && svc.host_port && (
-              <a href={serviceUrl} target="_blank" rel="noopener noreferrer"
-                className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[color:var(--color-noctua-amber)]/15 hover:bg-[color:var(--color-noctua-amber)]/25 text-[color:var(--color-noctua-amber)] border border-[color:var(--color-noctua-amber)]/20 transition-colors duration-200">
-                <ExternalLink size={12} />{portLabel}
-              </a>
-            )}
-          </div>
-        )}
-
-        {!tpl && (
-          <div className="flex items-center gap-2">
-            <div
-              className="flex-1 bg-black/20 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono truncate"
-              style={{ color: newServiceKeys[svc.id] ? '#ef9f27' : '#9ca3af' }}
-            >
-              {newServiceKeys[svc.id] ? newServiceKeys[svc.id] : 'nct_sk_••••••••••••••••'}
-            </div>
-            {newServiceKeys[svc.id] && (
-              <button
-                onClick={() => handleCopy(svc)}
-                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[color:var(--color-noctua-amber)]/15 hover:bg-[color:var(--color-noctua-amber)]/25 text-[color:var(--color-noctua-amber)] border border-[color:var(--color-noctua-amber)]/20 transition-colors duration-200"
-              >
-                {copied === svc.id ? '¡Copiado!' : 'Copiar'}
-              </button>
-            )}
-          </div>
-        )}
-      </motion.div>
-    )
-  }
-
+  // Card definida fuera del componente para evitar re-mount en cada render
+  const renderCard = (svc: Service, index: number) => (
+    <ServiceCard
+      key={svc.id} svc={svc} index={index}
+      templates={templates}
+      canManageContainers={canManageContainers}
+      actionLoading={actionLoading}
+      newServiceKeys={newServiceKeys}
+      copied={copied}
+      onContainerAction={handleContainerAction}
+      onCopy={handleCopy}
+    />
+  )
   const filteredTemplates = filtered.filter(s => s.template_id)
   const filteredExternal  = filtered.filter(s => !s.template_id)
 
@@ -457,7 +484,7 @@ export default function ServicesPage() {
                 <div className="flex-1 h-px bg-white/8" />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {filteredTemplates.map((svc, i) => <ServiceCard key={svc.id} svc={svc} index={i} />)}
+                {filteredTemplates.map((svc, i) => renderCard(svc, i))}
               </div>
             </div>
           )}
@@ -476,7 +503,7 @@ export default function ServicesPage() {
                 <div className="flex-1 h-px bg-white/8" />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {filteredExternal.map((svc, i) => <ServiceCard key={svc.id} svc={svc} index={i} />)}
+                {filteredExternal.map((svc, i) => renderCard(svc, i))}
               </div>
             </div>
           )}
