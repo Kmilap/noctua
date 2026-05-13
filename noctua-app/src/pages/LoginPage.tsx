@@ -43,8 +43,8 @@ export default function LoginPage() {
     setDeactivated(false)
     try {
       await login(email, password)
-      setSuccess(true)
-      setTimeout(() => navigate('/app/dashboard'), 1400)
+      
+      navigate('/app/dashboard')
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.data?.errors?.email?.[0] === 'deactivated') {
         setDeactivated(true)
@@ -63,7 +63,7 @@ export default function LoginPage() {
     transition-colors duration-200 pr-10
   `
 
-  if (success) return <NoctuaLoader visible={true} />
+  
 
   return (
     <div className="relative min-h-screen bg-[color:var(--color-noctua-bg)] flex overflow-hidden">

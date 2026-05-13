@@ -1,54 +1,50 @@
-// noctua-app/src/hooks/useAuth.ts
 import { useState } from 'react'
 import axios from 'axios'
 
 const API = 'http://localhost:8000/api'
 
-// Lee el token síncronamente UNA SOLA VEZ al importar el módulo.
-// Esto evita el flicker: cuando React monta el árbol, el token
-// ya está disponible desde el primer render — no hay "primer render
-// sin token" que dispare un redirect a login.
-const initialToken = localStorage.getItem('token')
-const initialUser  = (() => {
-  try {
-    const raw = localStorage.getItem('user')
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
+// Estado compartido a nivel de módulo — una sola fuente de verdad
+// para todos los componentes que llamen useAuth()
+let _token = localStorage.getItem('token')
+let _user  = (() => {
+  try { const r = localStorage.getItem('user'); return r ? JSON.parse(r) : null }
+  catch { return null }
 })()
 
+// Listeners para sincronizar todos los componentes suscritos
+const listeners = new Set<() => void>()
+const notify = () => listeners.forEach(fn => fn())
+
 export function useAuth() {
-  const [user,  setUser]  = useState(initialUser)
-  const [token, setToken] = useState(initialToken)
+  const [, rerender] = useState(0)
+
+  // Suscribirse a cambios globales
+  useState(() => {
+    const trigger = () => rerender(n => n + 1)
+    listeners.add(trigger)
+    return () => listeners.delete(trigger)
+  })
 
   const login = async (email: string, password: string) => {
     const res = await axios.post(`${API}/login`, { email, password })
-    const { token: t, user: u } = res.data
-    localStorage.setItem('token', t)
-    localStorage.setItem('user',  JSON.stringify(u))
-    setToken(t)
-    setUser(u)
+    _token = res.data.token
+    _user  = res.data.user
+    localStorage.setItem('token', _token!)
+    localStorage.setItem('user',  JSON.stringify(_user))
+    notify()
     return res.data
   }
 
   const logout = async () => {
     try {
-      await axios.post(`${API}/logout`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-    } catch {
-      // ignorar errores de red al hacer logout
-    }
+      await axios.post(`${API}/logout`, {}, { headers: { Authorization: `Bearer ${_token}` } })
+    } catch { /* ignorar */ }
+    _token = null
+    _user  = null
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    setToken(null)
-    setUser(null)
+    notify()
   }
 
-  // isAuthenticated es derivado — nunca es undefined ni pasa por
-  // un estado intermedio "false antes de leer localStorage"
-  const isAuthenticated = !!token
-
-  return { user, token, login, logout, isAuthenticated }
+  return { user: _user, token: _token, login, logout, isAuthenticated: !!_token }
 }
