@@ -43,8 +43,8 @@ export default function LoginPage() {
     setDeactivated(false)
     try {
       await login(email, password)
-      
-      navigate('/app/dashboard')
+      setSuccess(true)
+      setTimeout(() => navigate('/app/dashboard'), 1400)
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.data?.errors?.email?.[0] === 'deactivated') {
         setDeactivated(true)
@@ -63,7 +63,7 @@ export default function LoginPage() {
     transition-colors duration-200 pr-10
   `
 
-  
+  if (success) return <NoctuaLoader visible={true} />
 
   return (
     <div className="relative min-h-screen bg-[color:var(--color-noctua-bg)] flex overflow-hidden">
@@ -78,7 +78,7 @@ export default function LoginPage() {
           <h1 className="text-5xl font-bold tracking-tight text-white">
             n<span className="text-[color:var(--color-noctua-amber)]">o</span>ctua
           </h1>
-          <p className="text-gray-400 mt-3 text-lg">Vigila mientras dormís.</p>
+          <p className="text-gray-400 mt-3 text-lg">Vigila mientras duermes</p>
           <div className="w-10 h-0.5 bg-[color:var(--color-noctua-amber)] mt-3 rounded-full" />
         </div>
 
@@ -123,7 +123,7 @@ export default function LoginPage() {
         >
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-white tracking-tight">Iniciar sesión</h2>
-            <p className="text-sm text-gray-400 mt-1">Ingresá tus credenciales para acceder a Noctua</p>
+            <p className="text-sm text-gray-400 mt-1">Ingresa tus credenciales para acceder a Noctua</p>
           </div>
 
           {deactivated && (
@@ -220,7 +220,7 @@ export default function LoginPage() {
           </form>
 
           <p className="text-sm text-gray-500 text-center mt-6">
-            ¿No tenés cuenta?{' '}
+            ¿No tienes cuenta?{' '}
             <Link
               to="/register"
               className="text-[color:var(--color-noctua-amber)] font-semibold hover:underline"

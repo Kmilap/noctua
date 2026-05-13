@@ -185,7 +185,7 @@ export default function ChannelsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Canales de notificación</h1>
-          <p className="text-sm text-gray-400 mt-1">Configurá cómo y dónde recibe tu equipo las alertas de Noctua</p>
+          <p className="text-sm text-gray-400 mt-1">Configura cómo y dónde recibe tu equipo las alertas de Noctua</p>
         </div>
         {role === 'admin' && (
           <button
