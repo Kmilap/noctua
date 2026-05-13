@@ -172,6 +172,10 @@ class ContainerManager
 
         $this->runDockerCommand(['docker', 'start', $containerName]);
 
+        // Re-arranca el sidecar si existe (puede estar detenido tras un stop()).
+        $agentName = $this->buildAgentName($service);
+        $this->runDockerCommand(['docker', 'start', $agentName], allowFailure: true);
+
         $service->update([
             'container_status' => 'starting',
         ]);
@@ -195,6 +199,10 @@ class ContainerManager
         $containerName = $this->buildContainerName($service);
 
         $this->runDockerCommand(['docker', 'stop', $containerName]);
+
+        // Detiene el sidecar también (allowFailure: puede no existir).
+        $agentName = $this->buildAgentName($service);
+        $this->runDockerCommand(['docker', 'stop', $agentName], allowFailure: true);
 
         $service->update([
             'container_status' => 'stopped',
