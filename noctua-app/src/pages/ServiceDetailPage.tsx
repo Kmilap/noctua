@@ -30,9 +30,9 @@ type Summary = {
 type Incident = {
   id: number
   status: string
-  started_at: string
+  triggered_at: string
   resolved_at: string | null
-  alert_rule?: { name: string; severity: string }
+  alert_rule?: { metric_name: string; operator: string; threshold: string; severity: string }
 }
 
 const signalGroups = [
@@ -238,14 +238,14 @@ export default function ServiceDetailPage() {
                 key={inc.id}
                 className={`grid grid-cols-4 px-6 py-4 items-center ${i < incidents.length - 1 ? 'border-b border-white/5' : ''}`}
               >
-                <span className="text-sm text-white">{inc.alert_rule?.name ?? '—'}</span>
+                <span className="text-sm text-white">{inc.alert_rule ? `${inc.alert_rule.metric_name} ${inc.alert_rule.operator} ${inc.alert_rule.threshold}` : '—'}</span>
                 <span className={`inline-flex w-fit px-2.5 py-0.5 rounded-md text-xs font-semibold border ${severityBadge[inc.alert_rule?.severity ?? ''] ?? 'bg-gray-500/15 text-gray-400 border-gray-500/20'}`}>
                   {inc.alert_rule?.severity ?? '—'}
                 </span>
                 <span className={`inline-flex w-fit px-2.5 py-0.5 rounded-md text-xs font-semibold border ${incidentStatusBadge[inc.status] ?? 'bg-gray-500/15 text-gray-400 border-gray-500/20'}`}>
                   {inc.status}
                 </span>
-                <span className="text-sm text-gray-400">{formatRelativeTime(inc.started_at)}</span>
+                <span className="text-sm text-gray-400">{formatRelativeTime(inc.triggered_at)}</span>
               </div>
             ))
           )}
