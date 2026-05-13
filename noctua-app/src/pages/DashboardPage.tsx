@@ -55,7 +55,7 @@ export default function DashboardPage() {
     const fetchAll = async () => {
       try {
         const [servicesRes, incidentsRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/services', { headers }),
+          axios.get('http://localhost:8000/api/services/status', { headers }),
           axios.get('http://localhost:8000/api/incidents', { headers }),
         ])
 
@@ -71,7 +71,7 @@ export default function DashboardPage() {
           return new Date(i.resolved_at).toDateString() === new Date().toDateString()
         }).length
 
-        const responseTimes = svcs.map((s: any) => s.last_response_time_ms).filter(Boolean)
+        const responseTimes = svcs.map((s: any) => s.response_time_ms).filter(Boolean)
         const avgResponse = responseTimes.length
           ? Math.round(responseTimes.reduce((a: number, b: number) => a + b, 0) / responseTimes.length)
           : 0
@@ -86,7 +86,7 @@ export default function DashboardPage() {
 
         const mapped: ServiceRow[] = svcs.map((s: any) => ({
           id: s.id, name: s.name, url: s.url, status: s.status,
-          response_time_ms: s.last_response_time_ms ?? null,
+          response_time_ms: s.response_time_ms ?? null,
           uptime_24h: s.uptime_24h ?? null,
           last_seen_at: s.last_seen_at ?? null,
         }))
