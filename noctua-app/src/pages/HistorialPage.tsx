@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
@@ -47,6 +47,7 @@ export default function HistorialPage() {
   const { token } = useAuth()
   const { role }  = usePermissions()
   const navigate  = useNavigate()
+  const { t }     = useTranslation()
   const headers   = { Authorization: `Bearer ${token}` }
 
   const [incidents, setIncidents] = useState<ResolvedIncident[]>([])
@@ -89,10 +90,10 @@ export default function HistorialPage() {
         { headers }
       )
       setIncidents(prev => prev.map(i => i.id === inc.id ? { ...i, ...res.data } : i))
-      setSaveMsg('Guardado')
+      setSaveMsg(t('historial.form_saved'))
       setTimeout(() => { setEditingId(null); setSaveMsg('') }, 1000)
     } catch {
-      setSaveMsg('Error al guardar')
+      setSaveMsg(t('historial.form_error'))
     } finally { setSaving(false) }
   }
 
@@ -122,22 +123,22 @@ export default function HistorialPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-white tracking-tight">Historial de resoluciones</h1>
+            <h1 className="text-3xl font-bold text-white tracking-tight">{t('historial.title')}</h1>
             <span className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/20">
-              Vista: {role === 'admin' ? 'Admin' : 'Operator'}
+              {t('historial.view_label')} {role === 'admin' ? 'Admin' : 'Operator'}
             </span>
           </div>
-          <p className="text-sm text-gray-400 mt-1">Documentación colaborativa de incidentes resueltos — visible para todo el equipo.</p>
+          <p className="text-sm text-gray-400 mt-1">{t('historial.subtitle')}</p>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Incidentes resueltos',   value: incidents.length },
-          { label: 'Tiempo promedio',         value: avgDuration },
-          { label: 'Operadores activos',      value: [...new Set(incidents.map(i => i.resolved_by?.id).filter(Boolean))].length },
-          { label: 'Con notas documentadas',  value: documented > 0 ? Math.round(documented / Math.max(incidents.length, 1) * 100) + '%' : '0%' },
+          { label: t('historial.stat_resolved'),    value: incidents.length },
+          { label: t('historial.stat_avg_time'),    value: avgDuration },
+          { label: t('historial.stat_operators'),   value: [...new Set(incidents.map(i => i.resolved_by?.id).filter(Boolean))].length },
+          { label: t('historial.stat_documented'),  value: documented > 0 ? Math.round(documented / Math.max(incidents.length, 1) * 100) + '%' : '0%' },
         ].map(s => (
           <div key={s.label} className="rounded-2xl px-5 py-5 border border-white/8 flex flex-col gap-2"
             style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(12px)' }}>
@@ -149,7 +150,7 @@ export default function HistorialPage() {
 
       {/* Filtros */}
       <div className="flex items-center gap-3 flex-wrap">
-        <input type="text" placeholder="Buscar en historial..." value={search}
+        <input type="text" placeholder={t('historial.search_placeholder')} value={search}
           onChange={e => setSearch(e.target.value)}
           className="bg-white/5 text-white placeholder-gray-500 text-sm rounded-xl px-4 py-2.5 outline-none border border-white/10 focus:border-white/20 transition-colors w-64" />
         {['all', 'critical', 'warning', 'info'].map(s => (
@@ -157,7 +158,7 @@ export default function HistorialPage() {
             className={'px-4 py-2 rounded-lg text-sm font-semibold border transition-all duration-200 ' + (filterSev === s
               ? 'bg-[color:var(--color-noctua-amber)]/15 text-[color:var(--color-noctua-amber)] border-[color:var(--color-noctua-amber)]/30'
               : 'text-gray-400 bg-white/5 border-white/10 hover:text-white')}>
-            {s === 'all' ? 'Todos' : s.charAt(0).toUpperCase() + s.slice(1)}
+            {s === 'all' ? t('historial.filter_all') : s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
       </div>
@@ -169,7 +170,7 @@ export default function HistorialPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="border border-dashed border-white/10 rounded-2xl px-6 py-12 text-center">
-          <p className="text-gray-500 text-sm">Sin incidentes resueltos que coincidan.</p>
+          <p className="text-gray-500 text-sm">{t('historial.no_incidents')}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -196,7 +197,7 @@ export default function HistorialPage() {
                         {sev.charAt(0).toUpperCase() + sev.slice(1)}
                       </span>
                       <span className="px-2 py-0.5 rounded-md text-xs font-semibold border bg-emerald-400/15 text-emerald-400 border-emerald-400/20">
-                        Resuelto
+                        {t('historial.resolved_badge')}
                       </span>
                     </div>
                     <p className="text-base font-bold text-white">{svcName}</p>
@@ -211,7 +212,7 @@ export default function HistorialPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-xs font-semibold text-white">{resolver.name}</p>
-                          <p className="text-xs text-gray-500">{formatRelativeTime(inc.resolved_at)} · Duración: {dur}</p>
+                          <p className="text-xs text-gray-500">{formatRelativeTime(inc.resolved_at)} · {t('historial.duration_label')} {dur}</p>
                         </div>
                       </div>
                     )}
@@ -221,9 +222,9 @@ export default function HistorialPage() {
                 {/* Tags */}
                 {inc.tags && inc.tags.length > 0 && !isEditing && (
                   <div className="flex gap-2 flex-wrap">
-                    {inc.tags.map(t => (
-                      <span key={t.id} className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-white/8 text-gray-300 border border-white/10">
-                        #{t.tag}
+                    {inc.tags.map(tagItem => (
+                      <span key={tagItem.id} className="px-2.5 py-0.5 rounded-md text-xs font-mono bg-white/8 text-gray-300 border border-white/10">
+                        #{tagItem.tag}
                       </span>
                     ))}
                   </div>
@@ -234,13 +235,13 @@ export default function HistorialPage() {
                   <div className="flex flex-col gap-1">
                     {inc.root_cause && (
                       <p className="text-xs text-gray-500">
-                        <span className="text-gray-400 font-semibold">Causa raíz: </span>{inc.root_cause}
+                        <span className="text-gray-400 font-semibold">{t('historial.root_cause_label')} </span>{inc.root_cause}
                       </p>
                     )}
                     {inc.resolution_notes ? (
                       <p className="text-sm text-gray-300 leading-relaxed">{inc.resolution_notes}</p>
                     ) : (
-                      <p className="text-sm text-gray-600 italic">Sin notas de resolución documentadas.</p>
+                      <p className="text-sm text-gray-600 italic">{t('historial.no_notes')}</p>
                     )}
                   </div>
                 )}
@@ -249,31 +250,31 @@ export default function HistorialPage() {
                 {isEditing && canEdit && (
                   <div className="flex flex-col gap-3 border-t border-white/8 pt-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Causa raíz</label>
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('historial.form_root_cause')}</label>
                       <input type="text" value={editCause} onChange={e => setEditCause(e.target.value)}
-                        placeholder="ej. Memory leak en el worker de pagos"
+                        placeholder={t('historial.form_root_cause_placeholder')}
                         className="w-full bg-white/5 text-white placeholder-gray-600 rounded-xl px-4 py-2.5 text-sm outline-none border border-white/10 focus:border-[color:var(--color-noctua-amber)]/60 transition-colors" />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Notas de resolución</label>
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('historial.form_notes')}</label>
                       <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} rows={3}
-                        placeholder="Describí qué pasó, cómo se resolvió y qué medidas preventivas se tomaron..."
+                        placeholder={t('historial.form_notes_placeholder')}
                         className="w-full bg-white/5 text-white placeholder-gray-600 rounded-xl px-4 py-2.5 text-sm outline-none border border-white/10 focus:border-[color:var(--color-noctua-amber)]/60 transition-colors resize-none" />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Tags <span className="normal-case text-gray-600">(separados por coma)</span></label>
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('historial.form_tags')} <span className="normal-case text-gray-600">{t('historial.form_tags_hint')}</span></label>
                       <input type="text" value={editTags} onChange={e => setEditTags(e.target.value)}
-                        placeholder="rollback, deploy, redis, latencia"
+                        placeholder={t('historial.form_tags_placeholder')}
                         className="w-full bg-white/5 text-white placeholder-gray-600 rounded-xl px-4 py-2.5 text-sm outline-none border border-white/10 focus:border-[color:var(--color-noctua-amber)]/60 transition-colors" />
                     </div>
                     <div className="flex gap-3">
                       <button onClick={() => setEditingId(null)} disabled={saving}
                         className="px-4 py-2.5 rounded-lg text-sm font-semibold text-gray-300 hover:text-white bg-white/5 border border-white/10 transition-colors disabled:opacity-50">
-                        Cancelar
+                        {t('historial.form_cancel')}
                       </button>
                       <button onClick={() => handleSave(inc)} disabled={saving}
                         className="px-4 py-2.5 rounded-lg text-sm font-bold text-black bg-[color:var(--color-noctua-amber)] hover:bg-[color:var(--color-noctua-amber-hover)] glow-amber transition-colors disabled:opacity-50">
-                        {saving ? 'Guardando...' : saveMsg || 'Guardar'}
+                        {saving ? t('historial.form_saving') : saveMsg || t('historial.form_save')}
                       </button>
                     </div>
                   </div>
@@ -289,10 +290,10 @@ export default function HistorialPage() {
                           setEditingId(inc.id)
                           setEditNotes(inc.resolution_notes ?? '')
                           setEditCause(inc.root_cause ?? '')
-                          setEditTags(inc.tags?.map(t => t.tag).join(', ') ?? '')
+                          setEditTags(inc.tags?.map(tagItem => tagItem.tag).join(', ') ?? '')
                         }}
                         className="text-xs font-semibold text-[color:var(--color-noctua-amber)] hover:underline transition-colors">
-                        {inc.resolution_notes ? 'Editar resolución →' : 'Documentar resolución →'}
+                        {inc.resolution_notes ? t('historial.edit_resolution') : t('historial.document_resolution')}
                       </button>
                     )}
                   </div>

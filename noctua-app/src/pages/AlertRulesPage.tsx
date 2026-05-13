@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
@@ -9,6 +10,7 @@ import AlertRuleModal from '../components/AlertRuleModal'
 export default function AlertRulesPage() {
   const { token } = useAuth()
   const { can } = usePermissions()
+  const { t } = useTranslation()
   const headers = { Authorization: `Bearer ${token}` }
 
   // Estado principal
@@ -37,7 +39,7 @@ export default function AlertRulesPage() {
         // Las reglas reales están en res.data.data
         setRules(res.data.data ?? [])
       } catch {
-        setError('No se pudieron cargar las reglas de alerta.')
+        setError(t('common.error_generic'))
       } finally {
         setLoading(false)
       }
@@ -63,7 +65,7 @@ export default function AlertRulesPage() {
     } catch {
       // Revertir si falla
       setRules(previousRules)
-      setError('No se pudo cambiar el estado de la regla.')
+      setError(t('alert_rules.error_toggle'))
       setTimeout(() => setError(''), 3000)
     }
   }
@@ -77,7 +79,7 @@ export default function AlertRulesPage() {
   // Delete real contra el backend
   const handleDelete = async (rule: AlertRule) => {
     const confirmed = confirm(
-      `¿Eliminar la regla de "${rule.service?.name}"? Esta acción también eliminará sus incidentes asociados.`
+      `${t('alert_rules.delete_confirm_prefix')} "${rule.service?.name}"? ${t('alert_rules.delete_confirm_suffix')}`
     )
     if (!confirmed) return
 
@@ -85,7 +87,7 @@ export default function AlertRulesPage() {
       await axios.delete(`http://localhost:8000/api/alert-rules/${rule.id}`, { headers })
       setRules(rules.filter(r => r.id !== rule.id))
     } catch {
-      setError('No se pudo eliminar la regla.')
+      setError(t('alert_rules.error_delete'))
       setTimeout(() => setError(''), 3000)
     }
   }
@@ -111,10 +113,10 @@ export default function AlertRulesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">
-            Reglas de alerta
+            {t('alert_rules.title')}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Configura las condiciones que disparan alertas en tus servicios.
+            {t('alert_rules.subtitle')}
           </p>
         </div>
         {canCreate && (
@@ -130,7 +132,7 @@ export default function AlertRulesPage() {
               shrink-0
             "
           >
-            + Nueva regla
+            {t('alert_rules.new_rule')}
           </button>
         )}
       </div>
@@ -173,11 +175,7 @@ export default function AlertRulesPage() {
       ) : rules.length === 0 ? (
         <div className="bg-[color:var(--color-noctua-surface)]/40 border border-dashed border-[color:var(--color-noctua-border)]/60 rounded-xl px-6 py-12 text-center">
           <p className="text-gray-400 text-sm">
-            Todavía no hay reglas de alerta.{' '}
-            {canCreate
-              ? 'Creá tu primera con el botón de arriba.'
-              : 'Pedile al admin que cree la primera.'
-            }
+            {canCreate ? t('alert_rules.empty_admin') : t('alert_rules.empty_viewer')}
           </p>
         </div>
       ) : (

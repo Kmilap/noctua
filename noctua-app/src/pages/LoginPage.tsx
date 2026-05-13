@@ -1,19 +1,21 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
 import axios from 'axios'
 import AuroraBackground from '../components/AuroraBackground'
 import NoctuaLoader from '../components/NoctuaLoader'
 
-const features = [
-  { icon: '🟡', text: 'Monitoreo en tiempo real' },
-  { icon: '⚡', text: 'Alertas sin falsos positivos' },
-  { icon: '🟡', text: 'Setup en 30 segundos' },
-]
-
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
+  const { t } = useTranslation()
+
+  const features = [
+    { icon: '🟡', text: t('login.feature_monitoring') },
+    { icon: '⚡', text: t('login.feature_alerts') },
+    { icon: '🟡', text: t('login.feature_setup') },
+  ]
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -29,10 +31,10 @@ export default function LoginPage() {
     setResending(true)
     try {
       await axios.post('http://localhost:8000/api/account/resend-reactivation', { email: resendEmail || email })
-      setError('Correo de reactivación enviado. Revisá tu bandeja.')
+      setError(t('login.resend_success'))
       setDeactivated(false)
     } catch {
-      setError('No se pudo enviar el correo. Intentá de nuevo.')
+      setError(t('login.resend_error'))
     } finally { setResending(false) }
   }
 
@@ -49,7 +51,7 @@ export default function LoginPage() {
       if (axios.isAxiosError(err) && err.response?.data?.errors?.email?.[0] === 'deactivated') {
         setDeactivated(true)
       } else {
-        setError('Credenciales incorrectas. Verificá tu correo y contraseña.')
+        setError(t('login.error_credentials'))
       }
     } finally {
       setLoading(false)
@@ -78,7 +80,7 @@ export default function LoginPage() {
           <h1 className="text-5xl font-bold tracking-tight text-white">
             n<span className="text-[color:var(--color-noctua-amber)]">o</span>ctua
           </h1>
-          <p className="text-gray-400 mt-3 text-lg">Vigila mientras duermes</p>
+          <p className="text-gray-400 mt-3 text-lg">{t('login.tagline')}</p>
           <div className="w-10 h-0.5 bg-[color:var(--color-noctua-amber)] mt-3 rounded-full" />
         </div>
 
@@ -100,7 +102,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-xs text-gray-600">
-          Noctua v1.0 — Hecho en Bucaramanga, Colombia
+          {t('login.footer')}
         </p>
       </div>
 
@@ -122,17 +124,17 @@ export default function LoginPage() {
           }}
         >
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white tracking-tight">Iniciar sesión</h2>
-            <p className="text-sm text-gray-400 mt-1">Ingresa tus credenciales para acceder a Noctua</p>
+            <h2 className="text-2xl font-bold text-white tracking-tight">{t('login.title')}</h2>
+            <p className="text-sm text-gray-400 mt-1">{t('login.subtitle')}</p>
           </div>
 
           {deactivated && (
             <div className="mb-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm rounded-xl px-4 py-4 flex flex-col gap-3">
-              <p className="font-semibold">Tu cuenta está desactivada</p>
-              <p className="text-xs text-amber-300/70">Revisá tu correo para el link de reactivación, o solicitá uno nuevo.</p>
+              <p className="font-semibold">{t('login.account_deactivated')}</p>
+              <p className="text-xs text-amber-300/70">{t('login.reactivation_hint')}</p>
               <button onClick={handleResendReactivation} disabled={resending}
                 className="w-full py-2 rounded-lg text-xs font-bold text-black bg-amber-400 hover:bg-amber-500 transition-colors disabled:opacity-50">
-                {resending ? 'Enviando...' : 'Reenviar correo de reactivación'}
+                {resending ? t('login.resending') : t('login.resend_activation')}
               </button>
             </div>
           )}
@@ -146,7 +148,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                Correo electrónico
+                {t('login.email')}
               </label>
               <div className="relative">
                 <input
@@ -163,7 +165,7 @@ export default function LoginPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                Contraseña
+                {t('login.password')}
               </label>
               <div className="relative">
                 <input
@@ -198,7 +200,7 @@ export default function LoginPage() {
                 to="/forgot-password"
                 className="text-xs text-[color:var(--color-noctua-amber)] hover:underline text-left mt-1 w-fit"
               >
-                ¿Olvidaste tu contraseña?
+                {t('login.forgot_password')}
               </Link>
             </div>
 
@@ -215,17 +217,17 @@ export default function LoginPage() {
                 mt-2
               "
             >
-              {loading ? 'Ingresando...' : 'Ingresar'}
+              {loading ? t('login.submitting') : t('login.submit')}
             </button>
           </form>
 
           <p className="text-sm text-gray-500 text-center mt-6">
-            ¿No tienes cuenta?{' '}
+            {t('login.no_account')}{' '}
             <Link
               to="/register"
               className="text-[color:var(--color-noctua-amber)] font-semibold hover:underline"
             >
-              Registrate
+              {t('login.register_link')}
             </Link>
           </p>
         </div>

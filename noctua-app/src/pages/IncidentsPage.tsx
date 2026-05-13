@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
@@ -9,6 +10,7 @@ import IncidentCard, { type AlertIncident } from '../components/IncidentCard'
 export default function IncidentsPage() {
   const { token } = useAuth()
   const { role } = usePermissions()
+  const { t } = useTranslation()
   const headers = { Authorization: `Bearer ${token}` }
 
   // Solo admin y operator pueden reconocer/resolver. Viewer solo mira.
@@ -43,7 +45,7 @@ export default function IncidentsPage() {
         const res = await axios.get('http://localhost:8000/api/incidents', { headers })
         setIncidents(res.data.data ?? [])
       } catch {
-        setError('No se pudieron cargar los incidentes.')
+        setError(t('common.error_generic'))
       } finally {
         setLoading(false)
       }
@@ -84,7 +86,7 @@ export default function IncidentsPage() {
       setIncidents(previous)
       const msg = axios.isAxiosError(err) && err.response?.data?.message
         ? err.response.data.message
-        : 'No se pudo reconocer el incidente.'
+        : t('incidents.error_acknowledge')
       setError(msg)
       setTimeout(() => setError(''), 4000)
     }
@@ -108,7 +110,7 @@ export default function IncidentsPage() {
       setIncidents(previous)
       const msg = axios.isAxiosError(err) && err.response?.data?.message
         ? err.response.data.message
-        : 'No se pudo resolver el incidente.'
+        : t('incidents.error_resolve')
       setError(msg)
       setTimeout(() => setError(''), 4000)
     }
@@ -119,10 +121,10 @@ export default function IncidentsPage() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-white tracking-tight">
-          Incidentes
+          {t('incidents.title')}
         </h1>
         <p className="text-sm text-gray-400 mt-1">
-          Monitorea alertas activas, reconocelas y resolvelas.
+          {t('incidents.subtitle')}
         </p>
       </div>
 
@@ -183,8 +185,8 @@ export default function IncidentsPage() {
         <div className="bg-[color:var(--color-noctua-surface)]/40 border border-dashed border-[color:var(--color-noctua-border)]/60 rounded-xl px-6 py-12 text-center">
           <p className="text-gray-400 text-sm">
             {activeFilter === 'all'
-              ? 'No hay incidentes todavía. Cuando una regla se viole las veces consecutivas configuradas, aparecerán aquí.'
-              : `No hay incidentes en estado "${activeFilter}".`
+              ? t('incidents.empty_all')
+              : `${t('incidents.empty_filter')} "${activeFilter}".`
             }
           </p>
         </div>
