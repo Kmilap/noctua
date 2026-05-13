@@ -1,6 +1,16 @@
 // noctua-app/src/pages/LandingPage.tsx
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import laravelImg   from '../assets/images/laravel-icon.png'
+import n8nImg       from '../assets/images/n8n-icon.png'
+import wordpressImg from '../assets/images/WordPress-icon.png'
+import redisImg     from '../assets/images/redis-icon.png'
+import postgresImg  from '../assets/images/postgreSQL-icon.png'
+import dockerImg    from '../assets/images/docker-icon.png'
+import pythonImg    from '../assets/images/Python-icon.png'
+import fastapiImg   from '../assets/images/fastapi-icon.png'
+import mysqlImg     from '../assets/images/mysql-icon.png'
+import horizonImg   from '../assets/images/Horizon-icon.png'
 
 const STYLE_ID = 'noctua-lp-v6'
 
@@ -106,10 +116,11 @@ html {
 .LP4 .mqs::after{right:0;background:linear-gradient(to left,rgba(10,9,26,.9),transparent)}
 .LP4 .mqlbl{text-align:center;font-family:var(--mo);font-size:.6rem;color:rgba(255,255,255,.3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:1.1rem}
 .LP4 .mqw{overflow:hidden}
-.LP4 .mqt{display:flex;gap:2rem;width:max-content;animation:lpmq 28s linear infinite}
+.LP4 .mqt{display:flex;width:max-content;animation:lpmq 28s linear infinite}
 @keyframes lpmq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.LP4 .mqi{display:flex;align-items:center;gap:.6rem;font-size:.78rem;font-weight:600;color:rgba(255,255,255,.32);white-space:nowrap;flex-shrink:0}
-.LP4 .mqic{width:26px;height:26px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--mo);font-size:.6rem;font-weight:700;color:var(--a);background:var(--ag);border:1px solid rgba(217,164,65,.18)}
+.LP4 .mqi{display:flex;align-items:center;gap:.6rem;font-size:.78rem;font-weight:600;color:rgba(255,255,255,.32);white-space:nowrap;flex-shrink:0;margin-right:2.5rem}
+.LP4 .mqic{width:28px;height:28px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);padding:3px;overflow:hidden}
+.LP4 .mqic img{width:100%;height:100%;object-fit:contain}
 
 /* SHARED */
 .LP4 .stag{font-family:var(--mo);font-size:.64rem;color:var(--a);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.75rem;display:block}
@@ -237,9 +248,24 @@ html {
   .LP4 .howtxt{position:static}
 }
 @media(prefers-reduced-motion:reduce){.LP4 *{animation:none!important;transition:none!important}}
+
+/* EXIT ANIMATION */
+.LP4.lp-exit{animation:lpExitLeft .58s cubic-bezier(.4,0,.2,1) forwards;pointer-events:none}
+@keyframes lpExitLeft{from{transform:translateX(0) scale(1);opacity:1;filter:blur(0px)}to{transform:translateX(-5%) scale(.97);opacity:0;filter:blur(6px)}}
 `
 
-const TECH = ['Laravel','n8n','WordPress','Redis','PostgreSQL','Docker','Python','FastAPI','MySQL','Horizon']
+const TECH = [
+  { name: 'Laravel',    img: laravelImg   },
+  { name: 'n8n',        img: n8nImg       },
+  { name: 'WordPress',  img: wordpressImg },
+  { name: 'Redis',      img: redisImg     },
+  { name: 'PostgreSQL', img: postgresImg  },
+  { name: 'Docker',     img: dockerImg    },
+  { name: 'Python',     img: pythonImg    },
+  { name: 'FastAPI',    img: fastapiImg   },
+  { name: 'MySQL',      img: mysqlImg     },
+  { name: 'Horizon',    img: horizonImg   },
+]
 const CARDS = [
   { n:'01', e:'Four Golden Signals', t:'Métricas que realmente importan', d:'Latencia (promedio, P95, P99), tráfico, error rate, uso de CPU y memoria reportados cada 30 segundos vía API key. noctua detecta degradaciones antes de que lleguen a tus usuarios.', tg:'response_time · p95 · p99 · cpu_usage · memory_usage · uptime_24h' },
   { n:'02', e:'Motor de evaluación dinámica', t:'Alertas sin fatiga de alertas', d:'Define umbrales con ventana de fallas consecutivas. El motor evalúa cada métrica con operadores configurables y solo crea un incidente cuando N mediciones seguidas violan el umbral sin falsos positivos.', tg:'consecutive_failures · rule-evaluator · operators · severity' },
@@ -260,6 +286,31 @@ const Arr = ({ s = 14 }: { s?: number }) => (
 )
 
 export default function LandingPage() {
+  const navigate  = useNavigate()
+  const location  = useLocation()
+  const [exiting,  setExiting]  = useState(false)
+  const [lpMounted, setLpMounted] = useState(false)
+
+  const enterFrom = (location.state as any)?.enterFrom as 'left' | 'right' | undefined
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setLpMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  const handleLoginNav = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setExiting(true)
+    setTimeout(() => navigate('/login', { state: { enterFrom: 'right' } }), 580)
+  }
+
+  const ease = 'cubic-bezier(0.22,1,0.36,1)'
+  const lpEnterStyle = enterFrom ? {
+    opacity:    lpMounted ? 1 : 0,
+    transform:  lpMounted ? 'none' : (enterFrom === 'left' ? 'translateX(-32px)' : 'translateX(32px)'),
+    transition: `opacity 0.65s ${ease}, transform 0.65s ${ease}`,
+  } : {}
+
   const barRef = useRef<HTMLDivElement>(null)
   const stickyRef = useRef<HTMLDivElement>(null)
   const howRef = useRef<HTMLDivElement>(null)
@@ -359,7 +410,7 @@ export default function LandingPage() {
   const techX2 = [...TECH, ...TECH]
 
   return (
-    <div className="LP4 vg">
+    <div className={`LP4 vg${exiting ? ' lp-exit' : ''}`} style={lpEnterStyle}>
       {/* grain */}
       <div className="noise"/>
 
@@ -390,8 +441,7 @@ export default function LandingPage() {
           <li><a onClick={(e) => handleSmoothScroll(e, 'empresa')}>Empresa</a></li>
         </ul>
         <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-          {/* 2. "Inicia sesión" a la izq y color principal, "Empezar gratis" secundario MODIFICADO A FONDO BLANCO */}
-          <Link to="/login" className="nbtn">Inicia sesión</Link>
+          <button className="nbtn" onClick={handleLoginNav}>Inicia sesión</button>
           <Link to="/register" className="nbtn-outline">Empezar gratis</Link>
         </div>
       </nav>
@@ -402,8 +452,7 @@ export default function LandingPage() {
         <h1 className="h1">Vigila mientras<br/><span className="shine">duermes</span></h1>
         <p className="sub">Monitoreo con los Four Golden Signals, provisioning de stacks Docker y alertas sin ruido. Todo bajo un mismo panel. Soberanía total de tus datos.</p>
         <div className="hbtns">
-          {/* 2. "Inicia sesión" a la izq y color principal MODIFICADO A FONDO BLANCO PARA EMPEZAR GRATIS */}
-          <Link to="/login" className="ba ba-lg">Inicia sesión</Link>
+          <button className="ba ba-lg" onClick={handleLoginNav}>Inicia sesión</button>
           <Link to="/register" className="bgb">Empezar gratis<Arr /></Link>
         </div>
         <div className="scrollh">
@@ -426,7 +475,12 @@ export default function LandingPage() {
         <p className="mqlbl">Monitorea cualquier stack. Provisiona en segundos.</p>
         <div className="mqw">
           <div className="mqt">
-            {techX2.map((t,i) => <div key={i} className="mqi"><div className="mqic">{t[0]}</div>{t}</div>)}
+            {techX2.map((item, i) => (
+              <div key={i} className="mqi">
+                <div className="mqic"><img src={item.img} alt={item.name} /></div>
+                {item.name}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -533,8 +587,7 @@ export default function LandingPage() {
           <h2 className="ctatitle">Tu infraestructura<br/>nunca duerme<br/><span style={{ color:'#D9A441' }}>noctua tampoco</span></h2>
           <p className="ctasub">Monitoreo inteligente, provisioning Docker y alertas sin ruido. Self-hosted. Sin tarjeta de crédito.</p>
           <div className="ctabtns">
-            {/* 2. "Inicia sesión" a la izq y color principal */}
-            <Link to="/login" className="ba ba-lg">Inicia sesión</Link>
+            <button className="ba ba-lg" onClick={handleLoginNav}>Inicia sesión</button>
             <Link to="/register" className="bgb">Crear cuenta gratis<Arr /></Link>
           </div>
         </div>

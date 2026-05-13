@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import AuroraBackground from '../components/AuroraBackground'
 import { useAuth } from '../hooks/useAuth'
+import { usePageTransition } from '../hooks/usePageTransition'
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -106,9 +107,10 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function RegisterPage() {
-  const navigate = useNavigate()
-  const { login } = useAuth()
-  const { t } = useTranslation()
+  const navigate              = useNavigate()
+  const { login }             = useAuth()
+  const { t }                 = useTranslation()
+  const { navTo, pageStyle }  = usePageTransition()
 
   const steps = [
     { num: '01', label: t('register.step1') },
@@ -168,7 +170,7 @@ export default function RegisterPage() {
   const labelClass = 'text-xs font-semibold text-gray-400 mb-1.5 block'
 
   return (
-    <div className="relative min-h-screen bg-[color:var(--color-noctua-bg)] flex overflow-hidden">
+    <div className="relative min-h-screen bg-[color:var(--color-noctua-bg)] flex overflow-hidden" style={pageStyle}>
       <AuroraBackground />
 
       {/* Izquierda */}
@@ -208,9 +210,12 @@ export default function RegisterPage() {
           <p className="text-xs text-gray-600">{t('register.footer')}</p>
           <p className="text-sm text-gray-500">
             {t('register.already_have_account')}{' '}
-            <Link to="/login" className="text-[color:var(--color-noctua-amber)] font-semibold hover:underline">
+            <button
+              onClick={() => navTo('/login', 'back')}
+              className="text-[color:var(--color-noctua-amber)] font-semibold hover:underline transition-colors"
+            >
               {t('register.login_link')}
-            </Link>
+            </button>
           </p>
         </div>
       </div>
@@ -347,12 +352,6 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <p className="text-sm text-gray-500 text-center mt-5">
-            {t('register.already_have_account')}{' '}
-            <Link to="/login" className="text-[color:var(--color-noctua-amber)] font-semibold hover:underline">
-              {t('register.login_link')}
-            </Link>
-          </p>
         </div>
       </div>
     </div>
