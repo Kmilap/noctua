@@ -1,31 +1,37 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
 import AuroraBackground from '../components/AuroraBackground'
 import NoctuaLoader from '../components/NoctuaLoader'
 
+// Cambio 4: Rutas actualizadas con el prefijo /app
 const allNavItems = [
-  { label: 'Dashboard',        path: '/dashboard',   page: 'dashboard'   },
-  { label: 'Servicios',        path: '/services',    page: 'services'    },
-  { label: 'Reglas de alerta', path: '/alert-rules', page: 'alert-rules' },
-  { label: 'Incidentes',       path: '/incidents',   page: 'incidents'   },
-  { label: 'Canales',          path: '/channels',    page: 'channels'    },
-  { label: 'Equipo',           path: '/team',        page: 'team'        },
-  { label: 'Actividad',        path: '/activity',    page: 'activity'    },
-  { label: 'Historial',        path: '/historial',   page: 'historial'   },
+  { label: 'Dashboard',        path: '/app/dashboard',   page: 'dashboard'   },
+  { label: 'Servicios',        path: '/app/services',    page: 'services'    },
+  { label: 'Reglas de alerta', path: '/app/alert-rules', page: 'alert-rules' },
+  { label: 'Incidentes',       path: '/app/incidents',   page: 'incidents'   },
+  { label: 'Canales',          path: '/app/channels',    page: 'channels'    },
+  { label: 'Equipo',           path: '/app/team',        page: 'team'        },
+  { label: 'Actividad',        path: '/app/activity',    page: 'activity'    },
+  { label: 'Historial',        path: '/app/historial',   page: 'historial'   },
 ]
 
 function useOffline() {
   const [offline, setOffline] = useState(!navigator.onLine)
-  useState(() => {
+  
+  useEffect(() => {
     const off = () => setOffline(true)
     const on  = () => setOffline(false)
     window.addEventListener('offline', off)
     window.addEventListener('online',  on)
-    return () => { window.removeEventListener('offline', off); window.removeEventListener('online', on) }
-  })
+    return () => { 
+      window.removeEventListener('offline', off)
+      window.removeEventListener('online', on) 
+    }
+  }, [])
+
   return offline
 }
 
@@ -119,8 +125,9 @@ export default function Layout() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35, duration: 0.4 }}
         >
+          {/* Cambio 4: Link to actualizado a /app/profile */}
           <Link
-            to="/profile"
+            to="/app/profile"
             className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/5 transition-colors duration-200 group"
           >
             <div className="

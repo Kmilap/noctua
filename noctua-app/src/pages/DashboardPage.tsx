@@ -238,7 +238,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={svc.id}
-                  onClick={() => navigate(`/services/${svc.id}`)}
+                  onClick={() => navigate(`/app/services/${svc.id}`)}
                   className={`
                     grid grid-cols-5 px-6 py-4 items-center cursor-pointer
                     transition-colors duration-200 hover:bg-white/5

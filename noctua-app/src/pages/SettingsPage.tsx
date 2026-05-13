@@ -80,7 +80,7 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/profile')}
+        <button onClick={() => navigate('/app/profile')}
           className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/8 transition-all duration-200">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
