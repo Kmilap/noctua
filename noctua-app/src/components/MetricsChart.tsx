@@ -11,17 +11,17 @@ import {
   Filler,
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
-
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler)
 
 type MetricPoint = { timestamp: string; value: number }
-
 type MetricsChartProps = {
   serviceId: number
   serviceName: string
   metric?: string
   range?: '1h' | '24h' | '7d'
 }
+
+const FALLBACK_CHAIN = ['response_time', 'cpu_usage', 'memory_usage']
 
 export default function MetricsChart({
   serviceId,
@@ -31,27 +31,42 @@ export default function MetricsChart({
 }: MetricsChartProps) {
   const { token } = useAuth()
   const headers = { Authorization: `Bearer ${token}` }
-  const [points, setPoints] = useState<MetricPoint[]>([])
-  const [loading, setLoading] = useState(true)
+  const [points, setPoints]             = useState<MetricPoint[]>([])
+  const [activeMetric, setActiveMetric] = useState(metric)
+  const [loading, setLoading]           = useState(true)
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchWithFallback = async () => {
       setLoading(true)
-      try {
-        const res = await axios.get(
-          `http://localhost:8000/api/services/${serviceId}/metrics/history`,
-          { headers, params: { metric, range } }
-        )
-        setPoints(res.data.points ?? [])
-      } catch {
-        setPoints([])
-      } finally {
-        setLoading(false)
+      const chain = [metric, ...FALLBACK_CHAIN.filter(m => m !== metric)]
+      for (const m of chain) {
+        try {
+          const res = await axios.get(
+            `http://localhost:8000/api/services/${serviceId}/metrics/history`,
+            { headers, params: { metric: m, range } }
+          )
+          const pts: MetricPoint[] = res.data.points ?? []
+          if (pts.length > 0) {
+            setPoints(pts)
+            setActiveMetric(m)
+            setLoading(false)
+            return
+          }
+        } catch {
+          // continue fallback
+        }
       }
+      setPoints([])
+      setActiveMetric(metric)
+      setLoading(false)
     }
-    fetchData()
+    fetchWithFallback()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serviceId, metric, range])
+
+  const unit = activeMetric.includes('response_time') || activeMetric === 'memory_usage'
+    ? 'ms'
+    : activeMetric === 'cpu_usage' ? '%' : ''
 
   const labels = points.map(p => {
     const d = new Date(p.timestamp)
@@ -63,7 +78,7 @@ export default function MetricsChart({
   const data = {
     labels,
     datasets: [{
-      label: `${metric} (ms)`,
+      label: `${activeMetric}${unit ? ` (${unit})` : ''}`,
       data: points.map(p => p.value),
       borderColor: 'rgba(239, 159, 39, 0.9)',
       backgroundColor: 'rgba(239, 159, 39, 0.08)',
@@ -86,7 +101,7 @@ export default function MetricsChart({
         borderWidth: 1,
         titleColor: '#fff',
         bodyColor: '#9ca3af',
-        callbacks: { label: (ctx: any) => ` ${Math.round(ctx.parsed.y)} ms` },
+        callbacks: { label: (ctx: any) => ` ${Math.round(ctx.parsed.y)}${unit}` },
       },
     },
     scales: {
@@ -96,7 +111,7 @@ export default function MetricsChart({
       },
       y: {
         grid: { color: 'rgba(255,255,255,0.04)' },
-        ticks: { color: '#6b7280', font: { size: 11 }, callback: (v: any) => `${v}ms` },
+        ticks: { color: '#6b7280', font: { size: 11 }, callback: (v: any) => `${v}${unit}` },
       },
     },
   }
@@ -109,7 +124,7 @@ export default function MetricsChart({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-white">{serviceName}</p>
-          <p className="text-xs text-gray-500 mt-0.5 font-mono">{metric}</p>
+          <p className="text-xs text-gray-500 mt-0.5 font-mono">{activeMetric}</p>
         </div>
         <span className="text-xs text-gray-500 bg-white/5 px-2.5 py-1 rounded-lg border border-white/8">
           {range}
