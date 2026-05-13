@@ -136,12 +136,6 @@ export default function ForgotPasswordPage() {
 
   const inputRefs = useRef<Array<HTMLInputElement | null>>([])
 
-  const features = [
-    { icon: '🟡', text: t('forgot_password.feature_monitoring') },
-    { icon: '⚡', text: t('forgot_password.feature_alerts') },
-    { icon: '🟡', text: t('forgot_password.feature_setup') },
-  ]
-
   const stepLabels: Record<Step, string> = {
     1: t('forgot_password.step1_label'),
     2: t('forgot_password.step2_label'),
@@ -313,21 +307,16 @@ export default function ForgotPasswordPage() {
             <div className="w-10 h-0.5 bg-[color:var(--color-noctua-amber)] mt-3 rounded-full" />
           </div>
 
-          <div className="flex flex-col gap-4">
-            <Stepper current={step} />
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t('forgot_password.step_label')} {step} {t('forgot_password.step_of')}</p>
-              <p className="text-sm text-gray-300 mt-1">— {stepLabels[step]}</p>
+          <div className="flex flex-col gap-7">
+            <div style={{ transform: 'scale(1.35)', transformOrigin: 'left center' }}>
+              <Stepper current={step} />
             </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            {features.map((f, i) => (
-              <div key={i} className="inline-flex items-center gap-3 bg-white/5 border border-white/8 rounded-2xl px-5 py-3 w-full max-w-xs backdrop-blur-sm">
-                <span className="text-base">{f.icon}</span>
-                <span className="text-sm font-medium text-gray-300">{f.text}</span>
-              </div>
-            ))}
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold">
+                {t('forgot_password.step_label')} {step} {t('forgot_password.step_of')}
+              </p>
+              <p className="text-xl font-semibold text-gray-200 mt-2">— {stepLabels[step]}</p>
+            </div>
           </div>
 
           <p className="text-xs text-gray-600">{t('forgot_password.footer')}</p>
@@ -344,7 +333,12 @@ export default function ForgotPasswordPage() {
         >
           <div
             className="w-full rounded-3xl p-8 border border-white/10"
-            style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(24px)' }}
+            style={{
+              background:           'rgba(255,255,255,0.05)',
+              backdropFilter:       'blur(24px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+              boxShadow:            '0 4px 24px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.07)',
+            }}
           >
 
             {/* ── Paso 1 ── */}

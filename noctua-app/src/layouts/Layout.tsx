@@ -64,7 +64,7 @@ export default function Layout() {
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="relative z-10 w-60 shrink-0 flex flex-col justify-between py-6 px-4 border-r border-white/5"
         style={{
-          background: 'rgba(15, 14, 23, 0.72)',
+          background: 'var(--color-noctua-sidebar)',
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         }}

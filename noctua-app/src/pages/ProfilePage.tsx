@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
 import { useNavigate, Link } from 'react-router-dom'
 import ToggleSwitch from '../components/ToggleSwitch'
+import { Camera } from 'lucide-react'
 
 export default function ProfilePage() {
   const { token, user } = useAuth()
@@ -35,6 +36,23 @@ export default function ProfilePage() {
   const [saving, setSaving]   = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError]     = useState('')
+
+  const fileInputRef                          = useRef<HTMLInputElement>(null)
+  const [avatarUrl, setAvatarUrl]             = useState<string | null>(null)
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (avatarUrl) URL.revokeObjectURL(avatarUrl)
+    setAvatarUrl(URL.createObjectURL(file))
+    try {
+      const form = new FormData()
+      form.append('avatar', file)
+      await axios.post('http://localhost:8000/api/user/avatar', form, {
+        headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+      })
+    } catch { /* preview persists; upload silently fails if endpoint not ready */ }
+  }
 
   const [confirmDeactivate, setConfirmDeactivate] = useState(false)
   const [confirmDelete, setConfirmDelete]         = useState(false)
@@ -173,20 +191,48 @@ export default function ProfilePage() {
           {/* Avatar + rol */}
           <div className={sectionClass} style={sectionStyle}>
             <div className="flex items-center gap-5">
-              <div className="
-                w-16 h-16 rounded-full shrink-0
-                bg-[color:var(--color-noctua-amber)]/20
-                border-2 border-[color:var(--color-noctua-amber)]/40
-                flex items-center justify-center
-                text-xl font-bold text-[color:var(--color-noctua-amber)]
-              ">
-                {initials}
-              </div>
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+
+              {/* Clickable avatar circle */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="
+                  relative w-16 h-16 rounded-full shrink-0 overflow-hidden
+                  bg-[color:var(--color-noctua-amber)]/20
+                  border-2 border-[color:var(--color-noctua-amber)]/40
+                  flex items-center justify-center
+                  text-xl font-bold text-[color:var(--color-noctua-amber)]
+                  cursor-pointer group transition-opacity hover:opacity-90
+                "
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="relative z-10">{initials}</span>
+                )}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera size={18} className="text-white" />
+                </div>
+              </button>
+
               <div>
                 <span className="inline-block px-2.5 py-0.5 rounded-md text-xs font-semibold bg-[color:var(--color-noctua-amber)]/15 text-[color:var(--color-noctua-amber)] border border-[color:var(--color-noctua-amber)]/20 mb-2">
                   {rolLabel}
                 </span>
-                <button className="block text-sm text-gray-400 hover:text-white transition-colors duration-200">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="block text-sm text-gray-400 hover:text-white transition-colors duration-200"
+                >
                   {t('profile.change_avatar')}
                 </button>
               </div>
