@@ -1,0 +1,55 @@
+
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800&f[]=satoshi@400,500,700&display=swap');
+.noc-login-root{min-height:100vh;background:#07060f;display:flex;align-items:stretch;font-family:'Satoshi',sans-serif;position:relative;overflow:hidden}
+.noc-login-root::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.06) 1px,transparent 1px);background-size:32px 32px;pointer-events:none;z-index:0}
+.noc-aurora{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.noc-aurora-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.18}
+.noc-aurora-blob-1{width:600px;height:600px;background:#4f35d6;top:-200px;left:-100px;animation:noc-drift1 18s ease-in-out infinite alternate}
+.noc-aurora-blob-2{width:400px;height:400px;background:#ef9f27;bottom:-100px;right:200px;animation:noc-drift2 22s ease-in-out infinite alternate}
+.noc-aurora-blob-3{width:350px;height:350px;background:#7c3aed;top:40%;right:-80px;animation:noc-drift3 16s ease-in-out infinite alternate}
+@keyframes noc-drift1{from{transform:translate(0,0) scale(1)}to{transform:translate(60px,40px) scale(1.1)}}
+@keyframes noc-drift2{from{transform:translate(0,0) scale(1)}to{transform:translate(-40px,-60px) scale(1.08)}}
+@keyframes noc-drift3{from{transform:translate(0,0) scale(1)}to{transform:translate(-30px,50px) scale(0.95)}}
+.noc-left{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:48px 56px;border-right:1px solid rgba(255,255,255,0.06)}
+.noc-wordmark{font-family:'Cabinet Grotesk',sans-serif;font-size:38px;font-weight:800;letter-spacing:-0.03em;color:#f5f3ee;line-height:1}
+.noc-wordmark span{color:#ef9f27}
+.noc-tagline{font-size:14px;color:rgba(245,243,238,0.4);margin-top:10px;letter-spacing:0.01em}
+.noc-divider-short{width:32px;height:2px;background:#ef9f27;border-radius:2px;margin-top:16px}
+.noc-stats{display:flex;flex-direction:column;gap:12px}
+.noc-stat-card{display:flex;align-items:center;gap:16px;padding:16px 20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:16px;backdrop-filter:blur(8px);max-width:320px}
+.noc-stat-icon{width:36px;height:36px;border-radius:10px;background:rgba(239,159,39,0.12);border:1px solid rgba(239,159,39,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.noc-stat-icon svg{width:16px;height:16px;stroke:#ef9f27;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.noc-stat-text{font-size:13px;font-weight:500;color:rgba(245,243,238,0.7);letter-spacing:0.005em}
+.noc-footer-txt{font-size:11px;color:rgba(245,243,238,0.2);letter-spacing:0.02em}
+.noc-right{position:relative;z-index:1;width:480px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:40px;background:rgba(10,9,18,0.5);backdrop-filter:blur(24px)}
+.noc-form-card{width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:40px}
+.noc-form-title{font-family:'Cabinet Grotesk',sans-serif;font-size:26px;font-weight:700;color:#f5f3ee;letter-spacing:-0.02em;margin:0 0 6px}
+.noc-form-subtitle{font-size:13px;color:rgba(245,243,238,0.4);margin:0 0 32px}
+.noc-label{display:block;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:rgba(245,243,238,0.35);margin-bottom:8px}
+.noc-field{margin-bottom:20px}
+.noc-input-wrap{position:relative}
+.noc-input{width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 42px 12px 16px;font-size:14px;font-family:'Satoshi',sans-serif;color:#f5f3ee;outline:none;transition:border-color 0.2s;-webkit-appearance:none}
+.noc-input::placeholder{color:rgba(245,243,238,0.2)}
+.noc-input:focus{border-color:rgba(239,159,39,0.5);background:rgba(239,159,39,0.03)}
+.noc-input-dot{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:#ef9f27;pointer-events:none}
+.noc-toggle-pw{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:rgba(245,243,238,0.3);display:flex;align-items:center;transition:color 0.2s}
+.noc-toggle-pw:hover{color:rgba(245,243,238,0.7)}
+.noc-forgot{display:block;font-size:12px;color:#ef9f27;text-decoration:none;margin-top:8px;width:fit-content;opacity:0.8;transition:opacity 0.2s}
+.noc-forgot:hover{opacity:1;text-decoration:underline}
+.noc-error{background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);color:#f87171;font-size:13px;border-radius:12px;padding:12px 16px;margin-bottom:20px}
+.noc-deactivated{background:rgba(239,159,39,0.08);border:1px solid rgba(239,159,39,0.2);color:#fcd34d;font-size:13px;border-radius:12px;padding:16px;margin-bottom:20px;display:flex;flex-direction:column;gap:10px}
+.noc-deactivated-title{font-weight:600;font-size:13px;color:#ef9f27}
+.noc-deactivated-desc{font-size:12px;color:rgba(252,211,77,0.7);line-height:1.5}
+.noc-btn-resend{background:#ef9f27;color:#07060f;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;font-family:'Satoshi',sans-serif;cursor:pointer;transition:background 0.2s,opacity 0.2s;width:100%}
+.noc-btn-resend:hover:not(:disabled){background:#f5b03a}
+.noc-btn-resend:disabled{opacity:0.5;cursor:not-allowed}
+.noc-btn-submit{width:100%;background:#ef9f27;color:#07060f;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:700;font-family:'Satoshi',sans-serif;cursor:pointer;margin-top:8px;transition:background 0.2s,transform 0.1s,opacity 0.2s;letter-spacing:0.01em;position:relative;overflow:hidden}
+.noc-btn-submit::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.12) 0%,transparent 100%);pointer-events:none}
+.noc-btn-submit:hover:not(:disabled){background:#f5b03a;transform:translateY(-1px)}
+.noc-btn-submit:active:not(:disabled){transform:translateY(0)}
+.noc-btn-submit:disabled{opacity:0.5;cursor:not-allowed}
+.noc-register-txt{font-size:13px;color:rgba(245,243,238,0.35);text-align:center;margin-top:24px}
+.noc-register-txt a{color:#ef9f27;text-decoration:none;font-weight:600}
+.noc-register-txt a:hover{text-decoration:underline}
+.noc-separator{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent);margin:24px 0}
+@media(max-width:900px){.noc-left{display:none}.noc-right{width:100%}}

@@ -114,7 +114,7 @@ export default function AlertRulesPage() {
             Reglas de alerta
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Configurá las condiciones que disparan alertas en tus servicios.
+            Configura las condiciones que disparan alertas en tus servicios.
           </p>
         </div>
         {canCreate && (

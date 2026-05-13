@@ -79,7 +79,7 @@ export default function Layout() {
             <span className="text-2xl font-bold tracking-tight">
               n<span className="text-[color:var(--color-noctua-amber)]">o</span>ctua
             </span>
-            <p className="text-xs text-gray-500 mt-1">Vigila mientras dormís.</p>
+            <p className="text-xs text-gray-500 mt-1">Vigila mientras duermes</p>
           </motion.div>
 
           {/* Nav items */}

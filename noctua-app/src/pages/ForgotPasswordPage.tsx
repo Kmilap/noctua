@@ -122,9 +122,9 @@ function Stepper({ current }: { current: Step }) {
 }
 
 const stepLabels: Record<Step, string> = {
-  1: 'Ingresá tu correo',
-  2: 'Verificá el código',
-  3: 'Creá tu nueva contraseña',
+  1: 'Ingresa tu correo',
+  2: 'Verifica el código',
+  3: 'Crea tu nueva contraseña',
 }
 
 
@@ -306,7 +306,7 @@ export default function ForgotPasswordPage() {
             <h1 className="text-5xl font-bold tracking-tight text-white">
               n<span className="text-[color:var(--color-noctua-amber)]">o</span>ctua
             </h1>
-            <p className="text-gray-400 mt-3 text-lg">Vigila mientras dormís.</p>
+            <p className="text-gray-400 mt-3 text-lg">Vigila mientras duermes</p>
             <div className="w-10 h-0.5 bg-[color:var(--color-noctua-amber)] mt-3 rounded-full" />
           </div>
 
@@ -380,7 +380,7 @@ export default function ForgotPasswordPage() {
                   </button>
                 </form>
                 <Link to="/login" className="block text-center text-sm text-gray-500 hover:text-gray-300 transition-colors mt-5">
-                  ← Volver al inicio de sesión
+                   Volver al inicio de sesión
                 </Link>
               </>
             )}
@@ -394,12 +394,12 @@ export default function ForgotPasswordPage() {
 
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-white tracking-tight">
-                    {otpStatus === 'error' ? 'Código incorrecto' : '¡Revisá tu correo!'}
+                    {otpStatus === 'error' ? 'Código incorrecto' : '¡Revisa tu correo!'}
                   </h2>
                   <p className="text-sm text-gray-400 mt-2">
                     {otpStatus === 'error'
                       ? 'El código no coincide. Intentá de nuevo.'
-                      : 'Ingresá el código de 6 dígitos que enviamos a'}
+                      : 'Ingresa el código de 6 dígitos que enviamos a'}
                   </p>
                   {otpStatus !== 'error' && (
                     <p className="text-sm font-semibold text-[color:var(--color-noctua-amber)] mt-1">{email}</p>
@@ -438,7 +438,7 @@ export default function ForgotPasswordPage() {
 
                 {/* Hint de desarrollo */}
                 <p className="text-xs text-gray-600 text-center">
-                  💡 Revisá la consola del navegador para ver el código (entorno de desarrollo)
+                  💡 Revisa la consola del navegador para ver el código (entorno de desarrollo)
                 </p>
 
                 {/* Reenviar */}
@@ -459,7 +459,7 @@ export default function ForgotPasswordPage() {
                 </div>
 
                 <Link to="/login" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
-                  ← Volver al inicio de sesión
+                   Volver al inicio de sesión
                 </Link>
               </div>
             )}
@@ -474,7 +474,7 @@ export default function ForgotPasswordPage() {
                   </svg>
                 </div>
                 <h2 className="text-2xl font-bold text-white tracking-tight">Nueva contraseña</h2>
-                <p className="text-sm text-gray-400 mt-1 mb-6">Elegí una contraseña segura para proteger tu cuenta en Noctua.</p>
+                <p className="text-sm text-gray-400 mt-1 mb-6">Elige una contraseña segura para proteger tu cuenta en Noctua.</p>
 
                 {error && (
                   <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-xl px-4 py-3">{error}</div>
