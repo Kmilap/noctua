@@ -122,7 +122,7 @@ export default function IncidentsPage() {
           Incidentes
         </h1>
         <p className="text-sm text-gray-400 mt-1">
-          Monitoreá alertas activas, reconocelas y resolvelas.
+          Monitorea alertas activas, reconocelas y resolvelas.
         </p>
       </div>
 

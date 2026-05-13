@@ -400,7 +400,7 @@ export default function LandingPage() {
       {/* ── HERO ── */}
       <section className="hero">
         <div className="pill"><span className="pdot"/>MONITOREO EN TIEMPO REAL</div>
-        <h1 className="h1">Vigila mientras<br/><span className="shine">dormís</span></h1>
+        <h1 className="h1">Vigila mientras<br/><span className="shine">duermes</span></h1>
         <p className="sub">noctua detecta, alerta y documenta cada incidente antes de que tus usuarios lo noten. Vigilancia continua para equipos que no pueden fallar.</p>
         <div className="hbtns">
           {/* 2. "Inicia sesión" a la izq y color principal MODIFICADO A FONDO BLANCO PARA EMPEZAR GRATIS */}

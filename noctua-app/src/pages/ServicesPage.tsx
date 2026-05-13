@@ -420,7 +420,7 @@ export default function ServicesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Servicios</h1>
-          <p className="text-sm text-gray-400 mt-1">Registrá y gestioná los microservicios que Noctua monitorea</p>
+          <p className="text-sm text-gray-400 mt-1">Registra y gestiona los microservicios que Noctua monitorea</p>
         </div>
         <div className="flex items-center gap-3">
           {canCreate && services.length > 0 && (

@@ -5,9 +5,9 @@ import AuroraBackground from '../components/AuroraBackground'
 import { useAuth } from '../hooks/useAuth'
 
 const steps = [
-  { num: '01', label: 'Registrá tu cuenta' },
-  { num: '02', label: 'Agregá tus servicios' },
-  { num: '03', label: 'Configurá tus alertas' },
+  { num: '01', label: 'Registra tu cuenta' },
+  { num: '02', label: 'Agrega tus servicios' },
+  { num: '03', label: 'Configura tus alertas' },
 ]
 
 function EyeIcon({ open }: { open: boolean }) {
@@ -204,9 +204,9 @@ export default function RegisterPage() {
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-600">Noctua v1.0 — Hecho en Bucaramanga, Colombia</p>
           <p className="text-sm text-gray-500">
-            ¿Ya tenés cuenta?{' '}
+            ¿Ya tienes cuenta?{' '}
             <Link to="/login" className="text-[color:var(--color-noctua-amber)] font-semibold hover:underline">
-              Iniciá sesión →
+              Iniciá sesión
             </Link>
           </p>
         </div>
@@ -227,7 +227,7 @@ export default function RegisterPage() {
         >
           <div className="mb-7">
             <h2 className="text-2xl font-bold text-white tracking-tight">Crear cuenta</h2>
-            <p className="text-sm text-gray-400 mt-1">Completá los datos para empezar a monitorear.</p>
+            <p className="text-sm text-gray-400 mt-1">Completa los datos para empezar a monitorear.</p>
           </div>
 
           {error && (
@@ -345,9 +345,9 @@ export default function RegisterPage() {
           </form>
 
           <p className="text-sm text-gray-500 text-center mt-5">
-            ¿Ya tenés cuenta?{' '}
+            ¿Ya tienes cuenta?{' '}
             <Link to="/login" className="text-[color:var(--color-noctua-amber)] font-semibold hover:underline">
-              Iniciá sesión →
+              Inicia sesión
             </Link>
           </p>
         </div>
