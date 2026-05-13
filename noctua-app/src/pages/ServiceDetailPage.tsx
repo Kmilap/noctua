@@ -217,7 +217,7 @@ export default function ServiceDetailPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-semibold text-gray-300">Incidentes recientes</h2>
-          <Link to="/incidents" className="text-xs text-blue-400 hover:underline">
+          <Link to="/app/incidents" className="text-xs text-blue-400 hover:underline">
             Ver todos →
           </Link>
         </div>
