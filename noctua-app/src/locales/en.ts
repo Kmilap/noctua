@@ -33,6 +33,7 @@ const en = {
     resend_success: 'Reactivation email sent. Check your inbox.',
     resend_error: 'Could not send the email. Please try again.',
     footer: 'Noctua v1.0 — Made in Bucaramanga, Colombia',
+    back_home: 'Home',
   },
 
   register: {

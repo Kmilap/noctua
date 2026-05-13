@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import AuroraBackground from '../components/AuroraBackground'
+import { usePageTransition } from '../hooks/usePageTransition'
 
 type Step = 1 | 2 | 3
 type OtpStatus = 'idle' | 'success' | 'error'
@@ -118,7 +118,8 @@ function Stepper({ current }: { current: Step }) {
 }
 
 export default function ForgotPasswordPage() {
-  const { t } = useTranslation()
+  const { t }                 = useTranslation()
+  const { navTo, pageStyle }  = usePageTransition()
   const [step, setStep]         = useState<Step>(1)
   const [email, setEmail]       = useState('')
   const [otp, setOtp]           = useState('')           // código real generado
@@ -257,7 +258,7 @@ export default function ForgotPasswordPage() {
         password,
         password_confirmation: confirm,
       })
-      window.location.href = '/login'
+      navTo('/login', 'back')
     } catch {
       setError(t('forgot_password.step3_error_reset'))
     } finally {
@@ -296,7 +297,7 @@ export default function ForgotPasswordPage() {
         }
       `}</style>
 
-      <div className="relative min-h-screen bg-[color:var(--color-noctua-bg)] flex overflow-hidden">
+      <div className="relative min-h-screen bg-[color:var(--color-noctua-bg)] flex overflow-hidden" style={pageStyle}>
         <AuroraBackground />
 
         {/* Izquierda */}
@@ -381,9 +382,13 @@ export default function ForgotPasswordPage() {
                     {loading ? t('forgot_password.step1_sending') : t('forgot_password.step1_submit')}
                   </button>
                 </form>
-                <Link to="/login" className="block text-center text-sm text-gray-500 hover:text-gray-300 transition-colors mt-5">
-                   {t('forgot_password.step1_back')}
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => navTo('/login', 'back')}
+                  className="block w-full text-center text-sm text-gray-500 hover:text-gray-300 transition-colors mt-5"
+                >
+                  {t('forgot_password.step1_back')}
+                </button>
               </>
             )}
 
@@ -460,9 +465,13 @@ export default function ForgotPasswordPage() {
                   )}
                 </div>
 
-                <Link to="/login" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">
-                   {t('forgot_password.step2_back')}
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => navTo('/login', 'back')}
+                  className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  {t('forgot_password.step2_back')}
+                </button>
               </div>
             )}
 
