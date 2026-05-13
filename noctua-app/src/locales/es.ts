@@ -33,6 +33,7 @@ const es = {
     resend_success: 'Correo de reactivación enviado. Revisá tu bandeja.',
     resend_error: 'No se pudo enviar el correo. Intentá de nuevo.',
     footer: 'Noctua v1.0 — Hecho en Bucaramanga, Colombia',
+    back_home: 'Inicio',
   },
 
   register: {
