@@ -17,12 +17,33 @@ use RuntimeException;
 class ServiceController extends Controller
 {
     /**
+     * Mensaje uniforme para las 4 rutas que dependen de ContainerManager
+     * (store con plantilla, start, stop, restart) cuando el provisioning
+     * de contenedores está apagado vía config('noctua.container_provisioning').
+     */
+    private const PROVISIONING_DISABLED_MESSAGE = 'El provisioning de contenedores está deshabilitado en este despliegue.';
+
+    /**
      * ContainerManager se inyecta por constructor para facilitar testing
      * y mantener una sola instancia por request.
      */
     public function __construct(
         private readonly ContainerManager $containerManager,
     ) {
+    }
+
+    /**
+     * Respuesta 422 uniforme cuando una operación requeriría hablarle a
+     * ContainerManager pero container_provisioning está en false.
+     */
+    private function provisioningDisabledResponse(): JsonResponse
+    {
+        return response()->json([
+            'message' => self::PROVISIONING_DISABLED_MESSAGE,
+            'errors'  => [
+                'container' => [self::PROVISIONING_DISABLED_MESSAGE],
+            ],
+        ], 422);
     }
 
     public function index(Request $request): JsonResponse
@@ -63,6 +84,11 @@ class ServiceController extends Controller
                 'api_key' => $plainKey,
                 'message' => 'Guardá esta API key, no se mostrará de nuevo.',
             ], 201);
+        }
+
+        // Con plantilla pero provisioning apagado: no llegar a ContainerManager.
+        if (!config('noctua.container_provisioning')) {
+            return $this->provisioningDisabledResponse();
         }
 
         // Servicio con plantilla: BD + Docker en transacción.
