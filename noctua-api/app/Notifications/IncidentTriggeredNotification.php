@@ -36,11 +36,7 @@ public function toMail(object $notifiable): MailMessage
     $ruleDescription = trim("{$metric} {$operator} {$threshold}");
 
     // URL al detalle del incidente en el frontend.
-    // Mismo patrón que welcome.blade.php: config con fallback a env.
-    $frontendUrl = rtrim(
-        config('app.frontend_url', env('FRONTEND_URL', '/')),
-        '/'
-    );
+    $frontendUrl = rtrim(config('app.frontend_url'), '/');
     $incidentUrl = "{$frontendUrl}/incidents/{$incident->id}";
 
     return (new MailMessage)
