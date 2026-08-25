@@ -203,6 +203,10 @@ class ServiceController extends Controller
     {
         $this->authorize('start', $service);
 
+        if (!config('noctua.container_provisioning')) {
+            return $this->provisioningDisabledResponse();
+        }
+
         try {
             $this->containerManager->start($service);
         } catch (RuntimeException $e) {
@@ -222,6 +226,10 @@ class ServiceController extends Controller
     {
         $this->authorize('stop', $service);
 
+        if (!config('noctua.container_provisioning')) {
+            return $this->provisioningDisabledResponse();
+        }
+
         try {
             $this->containerManager->stop($service);
         } catch (RuntimeException $e) {
@@ -240,6 +248,10 @@ class ServiceController extends Controller
     public function restart(Request $request, Service $service): JsonResponse
     {
         $this->authorize('restart', $service);
+
+        if (!config('noctua.container_provisioning')) {
+            return $this->provisioningDisabledResponse();
+        }
 
         try {
             $this->containerManager->restart($service);
