@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
-
-const API = 'http://localhost:8000/api'
+import api from '../lib/api'
 
 let _token = localStorage.getItem('token')
 let _user  = (() => {
@@ -22,7 +20,7 @@ export function useAuth() {
   }, [])
 
   const login = async (email: string, password: string) => {
-    const res = await axios.post(`${API}/login`, { email, password })
+    const res = await api.post('/login', { email, password })
     _token = res.data.token
     _user  = res.data.user
     localStorage.setItem('token', _token!)
@@ -33,7 +31,7 @@ export function useAuth() {
 
   const logout = async () => {
     try {
-      await axios.post(`${API}/logout`, {}, { headers: { Authorization: `Bearer ${_token}` } })
+      await api.post('/logout', {})
     } catch { /* ignorar */ }
     _token = null
     _user  = null

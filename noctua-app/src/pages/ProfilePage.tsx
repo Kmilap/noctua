@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import api from '../lib/api'
 import { useAuth } from '../hooks/useAuth'
 import { usePermissions } from '../hooks/usePermissions'
 import { useNavigate, Link } from 'react-router-dom'
@@ -8,11 +9,10 @@ import ToggleSwitch from '../components/ToggleSwitch'
 import { Camera } from 'lucide-react'
 
 export default function ProfilePage() {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
   const { role } = usePermissions()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const headers = { Authorization: `Bearer ${token}` }
 
   const initials = user?.name
     ? user.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()
@@ -48,8 +48,8 @@ export default function ProfilePage() {
     try {
       const form = new FormData()
       form.append('avatar', file)
-      await axios.post('http://localhost:8000/api/user/avatar', form, {
-        headers: { ...headers, 'Content-Type': 'multipart/form-data' },
+      await api.post('/user/avatar', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       })
     } catch { /* preview persists; upload silently fails if endpoint not ready */ }
   }
@@ -94,7 +94,7 @@ export default function ProfilePage() {
         payload.password_confirmation = passConfirm
       }
 
-      await axios.patch('http://localhost:8000/api/user/profile', payload, { headers })
+      await api.patch('/user/profile', payload)
       setSuccess(t('profile.success'))
       setPassActual(''); setPassNueva(''); setPassConfirm('')
     } catch (err) {
@@ -110,7 +110,7 @@ export default function ProfilePage() {
   }
 
   const handleLogout = async () => {
-    await axios.post('http://localhost:8000/api/logout', {}, { headers })
+    await api.post('/logout', {})
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     navigate('/login')
@@ -119,7 +119,7 @@ export default function ProfilePage() {
   const handleDeactivate = async () => {
     setSaving(true)
     try {
-      await axios.post('http://localhost:8000/api/account/deactivate', {}, { headers })
+      await api.post('/account/deactivate', {})
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       navigate('/login')
@@ -133,8 +133,7 @@ export default function ProfilePage() {
     setSaving(true)
     setDeleteError('')
     try {
-      await axios.delete('http://localhost:8000/api/account', {
-        headers,
+      await api.delete('/account', {
         data: { password: deletePassword }
       })
       localStorage.removeItem('token')

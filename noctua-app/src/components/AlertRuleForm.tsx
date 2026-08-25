@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import type { AlertRule } from './AlertRuleCard'
 
 // Tipo de servicio (para el dropdown).
@@ -39,8 +39,6 @@ export default function AlertRuleForm({
   onSuccess,
   onCancel,
 }: AlertRuleFormProps) {
-  const { token } = useAuth()
-  const headers = { Authorization: `Bearer ${token}` }
   const isEditMode = !!initialData
 
   // Estado del formulario. Si es edición, precarga los valores de initialData.
@@ -61,7 +59,7 @@ export default function AlertRuleForm({
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const res = await axios.get('http://localhost:8000/api/services', { headers })
+        const res = await api.get('/services')
         setServices(res.data)
         // Si no hay service seleccionado todavía y hay servicios disponibles,
         // seleccionar el primero por defecto (solo en modo creación)
@@ -112,13 +110,9 @@ export default function AlertRuleForm({
         // En edición no mandamos service_id (el backend lo ignora igual,
         // pero es más prolijo no mandarlo)
         const { service_id, ...updatePayload } = payload
-        res = await axios.patch(
-          `http://localhost:8000/api/alert-rules/${initialData.id}`,
-          updatePayload,
-          { headers }
-        )
+        res = await api.patch(`/alert-rules/${initialData.id}`, updatePayload)
       } else {
-        res = await axios.post('http://localhost:8000/api/alert-rules', payload, { headers })
+        res = await api.post('/alert-rules', payload)
       }
       onSuccess(res.data)
     } catch (err) {

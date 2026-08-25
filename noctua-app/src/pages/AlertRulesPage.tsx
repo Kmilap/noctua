@@ -1,17 +1,14 @@
 import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import { usePermissions } from '../hooks/usePermissions'
 import AlertRuleCard, { type AlertRule } from '../components/AlertRuleCard'
 import AlertRuleModal from '../components/AlertRuleModal'
 
 export default function AlertRulesPage() {
-  const { token } = useAuth()
   const { can } = usePermissions()
   const { t } = useTranslation()
-  const headers = { Authorization: `Bearer ${token}` }
 
   // Estado principal
   const [rules, setRules] = useState<AlertRule[]>([])
@@ -34,7 +31,7 @@ export default function AlertRulesPage() {
   useEffect(() => {
     const fetchRules = async () => {
       try {
-        const res = await axios.get('http://localhost:8000/api/alert-rules', { headers })
+        const res = await api.get('/alert-rules')
         // El backend devuelve paginación Laravel: { data: [...], current_page, ... }
         // Las reglas reales están en res.data.data
         setRules(res.data.data ?? [])
@@ -55,11 +52,7 @@ export default function AlertRulesPage() {
     setRules(rules.map(r => r.id === rule.id ? { ...r, is_active: !r.is_active } : r))
 
     try {
-      const res = await axios.patch(
-        `http://localhost:8000/api/alert-rules/${rule.id}/toggle-active`,
-        {},
-        { headers }
-      )
+      const res = await api.patch(`/alert-rules/${rule.id}/toggle-active`, {})
       // Sincronizar con la respuesta real del backend (por si cambió algo más)
       setRules(prev => prev.map(r => r.id === rule.id ? res.data : r))
     } catch {
@@ -84,7 +77,7 @@ export default function AlertRulesPage() {
     if (!confirmed) return
 
     try {
-      await axios.delete(`http://localhost:8000/api/alert-rules/${rule.id}`, { headers })
+      await api.delete(`/alert-rules/${rule.id}`)
       setRules(rules.filter(r => r.id !== rule.id))
     } catch {
       setError(t('alert_rules.error_delete'))

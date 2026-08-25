@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -29,8 +28,6 @@ export default function MetricsChart({
   metric = 'response_time',
   range = '24h',
 }: MetricsChartProps) {
-  const { token } = useAuth()
-  const headers = { Authorization: `Bearer ${token}` }
   const [points, setPoints]             = useState<MetricPoint[]>([])
   const [activeMetric, setActiveMetric] = useState(metric)
   const [loading, setLoading]           = useState(true)
@@ -41,9 +38,9 @@ export default function MetricsChart({
       const chain = [metric, ...FALLBACK_CHAIN.filter(m => m !== metric)]
       for (const m of chain) {
         try {
-          const res = await axios.get(
-            `http://localhost:8000/api/services/${serviceId}/metrics/history`,
-            { headers, params: { metric: m, range } }
+          const res = await api.get(
+            `/services/${serviceId}/metrics/history`,
+            { params: { metric: m, range } }
           )
           const pts: MetricPoint[] = res.data.points ?? []
           if (pts.length > 0) {

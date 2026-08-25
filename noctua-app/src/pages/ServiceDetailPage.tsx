@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
 import MetricsChart from '../components/MetricsChart'
 import { ChevronLeft } from 'lucide-react'
@@ -100,9 +99,7 @@ const incidentStatusBadge: Record<string, string> = {
 
 export default function ServiceDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { token } = useAuth()
   const navigate = useNavigate()
-  const headers = { Authorization: `Bearer ${token}` }
 
   const [summary, setSummary]     = useState<Summary | null>(null)
   const [incidents, setIncidents] = useState<Incident[]>([])
@@ -113,8 +110,8 @@ export default function ServiceDetailPage() {
     const fetchAll = async () => {
       try {
         const [summaryRes, incidentsRes] = await Promise.all([
-          axios.get(`http://localhost:8000/api/services/${id}/metrics/summary`, { headers }),
-          axios.get(`http://localhost:8000/api/incidents`, { headers, params: { service_id: id, per_page: 10 } }),
+          api.get(`/services/${id}/metrics/summary`),
+          api.get(`/incidents`, { params: { service_id: id, per_page: 10 } }),
         ])
         setSummary(summaryRes.data)
         setIncidents(incidentsRes.data?.data ?? [])

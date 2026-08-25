@@ -2,16 +2,14 @@ import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import { usePermissions } from '../hooks/usePermissions'
 import IncidentFilters, { type IncidentFilter } from '../components/IncidentFilters'
 import IncidentCard, { type AlertIncident } from '../components/IncidentCard'
 
 export default function IncidentsPage() {
-  const { token } = useAuth()
   const { role } = usePermissions()
   const { t } = useTranslation()
-  const headers = { Authorization: `Bearer ${token}` }
 
   // Solo admin y operator pueden reconocer/resolver. Viewer solo mira.
   const canActOnIncident = role === 'admin' || role === 'operator'
@@ -20,7 +18,7 @@ export default function IncidentsPage() {
 
   const handleNotify = async (incident: AlertIncident) => {
     try {
-      await axios.post('http://localhost:8000/api/invitations', {}, { headers }).catch(() => {})
+      await api.post('/invitations', {}).catch(() => {})
       // Notificación visual — en producción dispararía un canal de notificación
       setNotifySuccess(`Operadores notificados sobre INC-${String(incident.id).padStart(3,'0')}`)
       setTimeout(() => setNotifySuccess(''), 4000)
@@ -42,7 +40,7 @@ export default function IncidentsPage() {
   useEffect(() => {
     const fetchIncidents = async () => {
       try {
-        const res = await axios.get('http://localhost:8000/api/incidents', { headers })
+        const res = await api.get('/incidents')
         setIncidents(res.data.data ?? [])
       } catch {
         setError(t('common.error_generic'))
@@ -75,11 +73,7 @@ export default function IncidentsPage() {
     ))
 
     try {
-      const res = await axios.post(
-        `http://localhost:8000/api/incidents/${incident.id}/acknowledge`,
-        {},
-        { headers }
-      )
+      const res = await api.post(`/incidents/${incident.id}/acknowledge`, {})
       // Reemplazar con la respuesta real (trae acknowledged_by y timestamps)
       setIncidents(prev => prev.map(i => i.id === incident.id ? res.data : i))
     } catch (err) {
@@ -100,11 +94,7 @@ export default function IncidentsPage() {
     ))
 
     try {
-      const res = await axios.post(
-        `http://localhost:8000/api/incidents/${incident.id}/resolve`,
-        {},
-        { headers }
-      )
+      const res = await api.post(`/incidents/${incident.id}/resolve`, {})
       setIncidents(prev => prev.map(i => i.id === incident.id ? res.data : i))
     } catch (err) {
       setIncidents(previous)

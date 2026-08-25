@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import { usePermissions } from '../hooks/usePermissions'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
 import { motion } from 'framer-motion'
@@ -47,10 +47,8 @@ function MemberAvatar({ name, role }: { name: string; role: string }) {
 }
 
 export default function TeamPage() {
-  const { token } = useAuth()
   const { role }  = usePermissions()
   const { t }     = useTranslation()
-  const headers   = { Authorization: `Bearer ${token}` }
 
   const rolesInfo = [
     {
@@ -96,10 +94,9 @@ export default function TeamPage() {
     setEditError('')
     setEditSuccess('')
     try {
-      await axios.patch(
-        'http://localhost:8000/api/team/members/' + editMember.id,
-        { role: editRole },
-        { headers }
+      await api.patch(
+        '/team/members/' + editMember.id,
+        { role: editRole }
       )
       setEditSuccess(t('team.edit_success'))
       setTeam(prev => prev ? {
@@ -131,9 +128,8 @@ export default function TeamPage() {
     setInviteError('')
     setInviteSuccess('')
     try {
-      await axios.post('http://localhost:8000/api/invitations',
-        { email: inviteEmail.trim(), role: inviteRole },
-        { headers }
+      await api.post('/invitations',
+        { email: inviteEmail.trim(), role: inviteRole }
       )
       setInviteSuccess(t('team.invite_success'))
       setInviteEmail('')
@@ -150,7 +146,7 @@ export default function TeamPage() {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await axios.get('http://localhost:8000/api/team', { headers })
+        const res = await api.get('/team')
         setTeam(res.data)
       } catch {
         setError(t('team.error_load'))

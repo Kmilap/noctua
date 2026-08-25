@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import { usePermissions } from '../hooks/usePermissions'
 import { useNavigate } from 'react-router-dom'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
@@ -44,11 +43,9 @@ function duration(triggered: string, resolved: string) {
 }
 
 export default function HistorialPage() {
-  const { token } = useAuth()
   const { role }  = usePermissions()
   const navigate  = useNavigate()
   const { t }     = useTranslation()
-  const headers   = { Authorization: `Bearer ${token}` }
 
   const [incidents, setIncidents] = useState<ResolvedIncident[]>([])
   const [loading, setLoading]     = useState(true)
@@ -73,7 +70,7 @@ export default function HistorialPage() {
 
   const fetchResolved = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/incidents/resolved', { headers })
+      const res = await api.get('/incidents/resolved')
       setIncidents(res.data?.data ?? [])
     } catch { /* silencioso */ }
     finally { setLoading(false) }
@@ -84,10 +81,9 @@ export default function HistorialPage() {
     setSaveMsg('')
     try {
       const tags = editTags.split(',').map(t => t.trim()).filter(Boolean)
-      const res = await axios.patch(
-        'http://localhost:8000/api/incidents/' + inc.id + '/resolution',
-        { resolution_notes: editNotes, root_cause: editCause, tags },
-        { headers }
+      const res = await api.patch(
+        '/incidents/' + inc.id + '/resolution',
+        { resolution_notes: editNotes, root_cause: editCause, tags }
       )
       setIncidents(prev => prev.map(i => i.id === inc.id ? { ...i, ...res.data } : i))
       setSaveMsg(t('historial.form_saved'))

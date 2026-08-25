@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import AuroraBackground from '../components/AuroraBackground'
 import axios from 'axios'
+import api from '../lib/api'
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -56,7 +57,7 @@ export default function AcceptInvitationPage() {
     try {
       const token = searchParams.get('token')
       if (!token) { setError(t('accept_invitation.invalid_token')); setLoading(false); return }
-      await axios.post('http://localhost:8000/api/invitations/' + token + '/accept', {
+      await api.post('/invitations/' + token + '/accept', {
         name,
         password,
         password_confirmation: confirm,
