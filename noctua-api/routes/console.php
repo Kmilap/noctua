@@ -49,12 +49,14 @@ Artisan::command('inspire', function () {
  *   ni EvaluateAlertRulesJob por workers de Horizon. Garantiza latencia
  *   predecible del sync independiente de la carga del resto del sistema.
  */
-Schedule::job(new SyncContainerStatusJob(), 'container-sync')
-    ->everyThirtySeconds()
-    ->withoutOverlapping(60)
-    ->onOneServer()
-    ->name('sync-container-status')
-    ->description('Sincroniza container_status con Docker cada 30s');
+if (config('noctua.container_provisioning')) {
+    Schedule::job(new SyncContainerStatusJob(), 'container-sync')
+        ->everyThirtySeconds()
+        ->withoutOverlapping(60)
+        ->onOneServer()
+        ->name('sync-container-status')
+        ->description('Sincroniza container_status con Docker cada 30s');
+}
 
 /**
  * DispatchAggregationJobsJob — calcula las 5 metricas agregadas Four Golden Signals
