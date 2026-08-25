@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import { usePermissions } from '../hooks/usePermissions'
 import Modal from '../components/Modal'
 import ToggleSwitch from '../components/ToggleSwitch'
@@ -19,10 +19,8 @@ type NotificationChannel = {
 }
 
 export default function ChannelsPage() {
-  const { token } = useAuth()
   const { role }  = usePermissions()
   const { t }     = useTranslation()
-  const headers   = { Authorization: `Bearer ${token}` }
 
   const typeConfig: Record<ChannelType, { label: string; icon: string; iconBg: string; iconColor: string; badge: string; configLabel: string }> = {
     email: { label: t('channels.type_email'), icon: '@', iconBg: 'bg-emerald-500/15', iconColor: 'text-emerald-400', badge: 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20', configLabel: t('channels.config_smtp') },
@@ -63,7 +61,7 @@ export default function ChannelsPage() {
 
   const fetchChannels = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/notification-channels', { headers })
+      const res = await api.get('/notification-channels')
       setChannels(res.data.data ?? [])
     } catch {
       setError(t('channels.error_load'))
@@ -94,11 +92,7 @@ export default function ChannelsPage() {
     const previous = channels
     setChannels(channels.map(c => c.id === ch.id ? { ...c, is_active: !c.is_active } : c))
     try {
-      await axios.patch(
-        `http://localhost:8000/api/notification-channels/${ch.id}/toggle-active`,
-        {},
-        { headers }
-      )
+      await api.patch(`/notification-channels/${ch.id}/toggle-active`, {})
     } catch {
       setChannels(previous)
     }
@@ -117,17 +111,15 @@ export default function ChannelsPage() {
     setFormError('')
     try {
       if (editingChannel) {
-        const res = await axios.put(
-          `http://localhost:8000/api/notification-channels/${editingChannel.id}`,
-          { type: formType, name: formName.trim(), config: formConfig },
-          { headers }
+        const res = await api.put(
+          `/notification-channels/${editingChannel.id}`,
+          { type: formType, name: formName.trim(), config: formConfig }
         )
         setChannels(channels.map(c => c.id === editingChannel.id ? res.data : c))
       } else {
-        const res = await axios.post(
-          'http://localhost:8000/api/notification-channels',
-          { type: formType, name: formName.trim(), config: formConfig },
-          { headers }
+        const res = await api.post(
+          '/notification-channels',
+          { type: formType, name: formName.trim(), config: formConfig }
         )
         setChannels([res.data, ...channels])
       }

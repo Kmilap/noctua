@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import { usePermissions } from '../hooks/usePermissions'
 import { useNavigate } from 'react-router-dom'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
@@ -36,11 +35,9 @@ const statusColor: Record<string, string> = {
 }
 
 export default function ActivityPage() {
-  const { token } = useAuth()
   const { role }  = usePermissions()
   const navigate  = useNavigate()
   const { t }     = useTranslation()
-  const headers   = { Authorization: `Bearer ${token}` }
 
   const [incidents, setIncidents]     = useState<Incident[]>([])
   const [recentMetrics, setRecentMetrics] = useState<MetricPoint[]>([])
@@ -58,8 +55,8 @@ export default function ActivityPage() {
   const fetchAll = async () => {
     try {
       const [incRes, svcRes] = await Promise.all([
-        axios.get('http://localhost:8000/api/incidents', { headers, params: { per_page: 50, with: 'alertRule.service' } }),
-        axios.get('http://localhost:8000/api/services', { headers }),
+        api.get('/incidents', { params: { per_page: 50, with: 'alertRule.service' } }),
+        api.get('/services'),
       ])
       setIncidents(incRes.data?.data ?? [])
       const svcs = svcRes.data ?? []
@@ -68,8 +65,8 @@ export default function ActivityPage() {
       // Traer métricas recientes de los primeros 3 servicios
       const metricResults = await Promise.allSettled(
         svcs.slice(0, 3).map((s: any) =>
-          axios.get(`http://localhost:8000/api/services/${s.id}/metrics/history`, {
-            headers, params: { metric: 'response_time', range: '1h' }
+          api.get(`/services/${s.id}/metrics/history`, {
+            params: { metric: 'response_time', range: '1h' }
           }).then(r => (r.data?.points ?? []).map((p: any) => ({
             ...p, metric_name: s.name, service_id: s.id
           })))

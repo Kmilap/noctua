@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import axios from 'axios'
+import api from '../lib/api'
 import AuroraBackground from '../components/AuroraBackground'
 import { usePageTransition } from '../hooks/usePageTransition'
 
@@ -161,7 +161,7 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError('')
     try {
-      await axios.post('http://localhost:8000/api/forgot-password', { email })
+      await api.post('/forgot-password', { email })
       setOtpInput(['', '', '', '', '', ''])
       setOtpStatus('idle')
       setStep(2)
@@ -215,7 +215,7 @@ export default function ForgotPasswordPage() {
 
   const verifyOtp = async (code: string) => {
     try {
-      const res = await axios.post('http://localhost:8000/api/verify-otp', { email, otp: code })
+      const res = await api.post('/verify-otp', { email, otp: code })
       setOtp(res.data.reset_token)
       setOtpStatus('success')
       setTimeout(() => setStep(3), 900)
@@ -232,7 +232,7 @@ export default function ForgotPasswordPage() {
   const handleResend = async () => {
     if (!canResend) return
     try {
-      await axios.post('http://localhost:8000/api/forgot-password', { email })
+      await api.post('/forgot-password', { email })
     } catch { /* silencioso */ }
     setOtpInput(['', '', '', '', '', ''])
     setOtpStatus('idle')
@@ -246,7 +246,7 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError('')
     try {
-      await axios.post('http://localhost:8000/api/reset-password', {
+      await api.post('/reset-password', {
         email,
         reset_token: otp,
         password,

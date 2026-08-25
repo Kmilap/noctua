@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import api from '../lib/api'
 import AuroraBackground from '../components/AuroraBackground'
 import { useAuth } from '../hooks/useAuth'
 import { usePageTransition } from '../hooks/usePageTransition'
@@ -137,7 +138,7 @@ export default function RegisterPage() {
     setError('')
     try {
       // Registrar al usuario
-      await axios.post('http://localhost:8000/api/register', {
+      await api.post('/register', {
         name,
         email,
         password,

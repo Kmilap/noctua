@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import { usePermissions } from '../hooks/usePermissions'
 import Modal from '../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -210,10 +210,8 @@ function ServiceCard({
 }
 
 export default function ServicesPage() {
-  const { token } = useAuth()
   const { role }  = usePermissions()
   const { t }     = useTranslation()
-  const headers   = { Authorization: `Bearer ${token}` }
 
   const canCreate           = role === 'admin' || role === 'operator'
   const canManageContainers = role === 'admin' || role === 'operator'
@@ -256,7 +254,7 @@ export default function ServicesPage() {
 
   const fetchServices = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/services', { headers })
+      const res = await api.get('/services')
       setServices((res.data ?? []).map((s: any) => ({
         id:                     s.id,
         name:                   s.name,
@@ -276,7 +274,7 @@ export default function ServicesPage() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/api/service-templates', { headers })
+      const res = await api.get('/service-templates')
       setTemplates(res.data.data ?? [])
     } catch { /* silencioso */ }
   }
@@ -305,11 +303,11 @@ export default function ServicesPage() {
     setSubmitting(true)
     setFormError('')
     try {
-      const res = await axios.post('http://localhost:8000/api/services', {
+      const res = await api.post('/services', {
         name: form.name.trim(),
         url:  form.url.trim() || null,
         check_interval_seconds: parseInt(form.interval) * (form.unit === 'minutes' ? 60 : 1),
-      }, { headers })
+      })
       const created = res.data
       setServices(prev => [{ ...created, template_id: null, container_id: null, container_status: null, host_port: null }, ...prev])
       if (created.api_key) {
@@ -336,11 +334,11 @@ export default function ServicesPage() {
     setSubmitting(true)
     setTplError('')
     try {
-      await axios.post('http://localhost:8000/api/services', {
+      await api.post('/services', {
         name:        tplName.trim(),
         template_id: selectedTemplate.id,
         host_port:   parseInt(tplPort),
-      }, { headers })
+      })
       setModal(false)
       await fetchServices()
     } catch (err) {
@@ -360,13 +358,13 @@ export default function ServicesPage() {
     const optimisticStatus: ContainerStatus = action === 'start' ? 'starting' : action === 'stop' ? 'stopped' : 'starting'
     setServices(prev => prev.map(s => s.id === svc.id ? { ...s, container_status: optimisticStatus } : s))
     try {
-      await axios.post('http://localhost:8000/api/services/' + svc.id + '/' + action, {}, { headers })
+      await api.post('/services/' + svc.id + '/' + action, {})
       if (action !== 'stop') {
         let attempts = 0
         const poll = setInterval(async () => {
           attempts++
           try {
-            const res = await axios.get('http://localhost:8000/api/services/' + svc.id, { headers })
+            const res = await api.get('/services/' + svc.id)
             const newStatus = res.data.container_status
             setServices(prev => prev.map(s => s.id === svc.id ? { ...s, container_status: newStatus } : s))
             if (newStatus !== 'starting' || attempts >= 20) clearInterval(poll)
@@ -385,7 +383,7 @@ export default function ServicesPage() {
     setDeleting(true)
     const ids = Array.from(selectedToDelete)
     await Promise.allSettled(
-      ids.map(id => axios.delete('http://localhost:8000/api/services/' + id, { headers }))
+      ids.map(id => api.delete('/services/' + id))
     )
     setServices(prev => prev.filter(s => !selectedToDelete.has(s.id)))
     setSelectedToDelete(new Set())

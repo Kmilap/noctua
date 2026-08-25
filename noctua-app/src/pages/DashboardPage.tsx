@@ -2,8 +2,7 @@ import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import axios from 'axios'
-import { useAuth } from '../hooks/useAuth'
+import api from '../lib/api'
 import { formatRelativeTime } from '../utils/formatRelativeTime'
 import MetricsChart from '../components/MetricsChart'
 
@@ -43,10 +42,8 @@ const statusStyles = {
 }
 
 export default function DashboardPage() {
-  const { token } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const headers = { Authorization: `Bearer ${token}` }
 
   const [stats, setStats]             = useState<DashboardStats | null>(null)
   const [services, setServices]       = useState<ServiceRow[]>([])
@@ -57,8 +54,8 @@ export default function DashboardPage() {
     const fetchAll = async () => {
       try {
         const [servicesRes, incidentsRes] = await Promise.all([
-          axios.get('http://localhost:8000/api/services/status', { headers }),
-          axios.get('http://localhost:8000/api/incidents', { headers }),
+          api.get('/services/status'),
+          api.get('/incidents'),
         ])
 
         const svcs = servicesRes.data ?? []
@@ -97,7 +94,7 @@ export default function DashboardPage() {
         // Fetch metrics/summary para cada servicio en paralelo
         const summaryResults = await Promise.allSettled(
           svcs.map((s: any) =>
-            axios.get(`http://localhost:8000/api/services/${s.id}/metrics/summary`, { headers })
+            api.get(`/services/${s.id}/metrics/summary`)
           )
         )
 

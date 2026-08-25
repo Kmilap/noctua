@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import api from '../lib/api'
 import AuroraBackground from '../components/AuroraBackground'
 import NoctuaLoader from '../components/NoctuaLoader'
 
@@ -21,7 +22,7 @@ export default function ReactivatePage() {
       return
     }
 
-    axios.post('http://localhost:8000/api/account/reactivate', { token, email })
+    api.post('/account/reactivate', { token, email })
       .then(() => {
         setStatus('success')
         setMessage(t('reactivate.success_msg'))

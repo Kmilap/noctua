@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
 import { usePageTransition } from '../hooks/usePageTransition'
 import axios from 'axios'
+import api from '../lib/api'
 import AuroraBackground from '../components/AuroraBackground'
 import NoctuaLoader from '../components/NoctuaLoader'
 import { ArrowLeft } from 'lucide-react'
@@ -27,7 +28,7 @@ export default function LoginPage() {
   const handleResendReactivation = async () => {
     setResending(true)
     try {
-      await axios.post('http://localhost:8000/api/account/resend-reactivation', { email: resendEmail || email })
+      await api.post('/account/resend-reactivation', { email: resendEmail || email })
       setError(t('login.resend_success'))
       setDeactivated(false)
     } catch {

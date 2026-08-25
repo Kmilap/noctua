@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import api from '../lib/api'
 
 interface ServiceStatus {
   id: number
@@ -23,15 +24,8 @@ export default function ServicesTable() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const token = localStorage.getItem('token')
-        const res = await fetch('http://localhost:8000/api/services/status', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/json',
-          },
-        })
-        const data = await res.json()
-        setServices(data)
+        const res = await api.get('/services/status')
+        setServices(res.data)
       } catch (err) {
         console.error('Error cargando servicios:', err)
       } finally {
