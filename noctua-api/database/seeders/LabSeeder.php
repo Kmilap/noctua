@@ -37,12 +37,12 @@ class LabSeeder extends Seeder
         // Validar TODAS las variables antes de tocar la BD: si falta una,
         // abortamos sin sembrar nada en vez de crear servicios con
         // api_key_hash de una clave vacía.
-        $missing = [];
-        foreach (self::SERVICES as $name => $envVar) {
-            if (!env($envVar)) {
-                $missing[] = $envVar;
-            }
+        $keysByEnvVar = [];
+        foreach (self::SERVICES as $envVar) {
+            $keysByEnvVar[$envVar] = env($envVar);
         }
+
+        $missing = array_keys(array_filter($keysByEnvVar, fn ($key) => !$key));
 
         if ($missing) {
             throw new RuntimeException(
@@ -52,8 +52,28 @@ class LabSeeder extends Seeder
             );
         }
 
+        // Las tres claves deben ser distintas: api_key_hash es UNIQUE en la
+        // tabla services, y si dos coinciden el INSERT/UPDATE falla con un
+        // error de constraint críptico en vez de decir cuál variable repetiste.
+        $envVarsByKey = [];
+        foreach ($keysByEnvVar as $envVar => $key) {
+            $envVarsByKey[$key][] = $envVar;
+        }
+
+        $duplicated = array_filter($envVarsByKey, fn ($envVars) => count($envVars) > 1);
+
+        if ($duplicated) {
+            $groups = array_map(fn ($envVars) => implode(' = ', $envVars), $duplicated);
+            throw new RuntimeException(
+                'Las siguientes variables de entorno tienen la misma clave y deben ser '
+                . 'distintas entre sí (api_key_hash es UNIQUE): '
+                . implode('; ', $groups)
+                . '.'
+            );
+        }
+
         foreach (self::SERVICES as $name => $envVar) {
-            $plainKey = env($envVar);
+            $plainKey = $keysByEnvVar[$envVar];
 
             $service = $team->services()->updateOrCreate(
                 ['name' => $name],
