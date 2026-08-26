@@ -70,7 +70,7 @@ Bienvenido a Noctua, {{ $user->name }}. Tu cuenta ya está activa.
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                     <tr>
                       <td align="center" bgcolor="#ef9f27" style="background-color: #ef9f27; border-radius: 12px;">
-                        <a href="{{ config('app.frontend_url', env('FRONTEND_URL', '/')) }}/dashboard" target="_blank" style="display: block; padding: 18px 32px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 700; color: #0f0e17; text-decoration: none; border-radius: 12px; letter-spacing: -0.01em;">
+                        <a href="{{ config('app.frontend_url') }}/dashboard" target="_blank" style="display: block; padding: 18px 32px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 700; color: #0f0e17; text-decoration: none; border-radius: 12px; letter-spacing: -0.01em;">
                           Ir al dashboard
                         </a>
                       </td>
