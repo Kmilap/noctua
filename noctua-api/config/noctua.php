@@ -13,6 +13,15 @@ return [
     */
 
     /*
+    | Interruptor global del provisioning de contenedores (Docker).
+    | Default true: el perfil Docker existente no cambia de comportamiento.
+    | En false (despliegues nativos sin Docker, ej. laboratorio con Nginx):
+    | el job de sync deja de programarse y los endpoints que tocarían
+    | ContainerManager responden 422 en vez de intentar hablarle a Docker.
+    */
+    'container_provisioning' => env('NOCTUA_CONTAINER_PROVISIONING', true),
+
+    /*
     | Límite global de contenedores activos (running o starting) creados
     | desde plantillas. Cuando se alcanza, ContainerManager::create()
     | retorna un error 422 con mensaje accionable.

@@ -1,0 +1,5 @@
+# Dependencias de scripts/simulator.py.
+# El resto de imports del archivo (asyncio, os, random, sys, time,
+# dataclasses, pathlib) son de la stdlib de Python y no requieren paquete.
+
+httpx~=0.27.0
