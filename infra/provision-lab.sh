@@ -2,7 +2,7 @@
 #
 # provision-lab.sh — aprovisionamiento del stack nativo de noctua-lab.
 #
-# Deja Ubuntu Server 24.04.3 LTS listo con PostgreSQL 17, Redis 7, PHP 8.3,
+# Deja Ubuntu Server 24.04.3 LTS listo con PostgreSQL 17, Redis 7, PHP 8.4,
 # Nginx (+ ModSecurity en modo DetectionOnly), Composer, Node 20, Python 3
 # y UFW (solo 22/80). No instala ni configura Noctúa — ver
 # docs/decisiones/ESTADO_LABORATORIO.md, Fase 4.
@@ -17,7 +17,7 @@ set -euo pipefail
 readonly WEB_ROOT="/var/www/html"
 readonly NGINX_SITE_AVAILABLE="/etc/nginx/sites-available/noctua-lab-info"
 readonly NGINX_SITE_ENABLED="/etc/nginx/sites-enabled/noctua-lab-info"
-readonly PHP_FPM_SOCK="/run/php/php8.3-fpm.sock"
+readonly PHP_FPM_SOCK="/run/php/php8.4-fpm.sock"
 readonly COMPOSER_BIN="/usr/local/bin/composer"
 readonly VM_IP="192.168.56.101"
 readonly APT_SOURCES_FILE="/etc/apt/sources.list.d/ubuntu.sources"
@@ -113,29 +113,58 @@ install_redis() {
 }
 
 install_php() {
-    log "PHP 8.3 + FPM + extensiones (pdo_pgsql, zip, pcntl, redis)"
-    # pcntl no es un paquete aparte: viene compilado en php8.3-cli, que es el
-    # único SAPI donde pcntl tiene sentido (no existe bajo FPM/Apache).
-    apt-get install -y \
-        php8.3 \
-        php8.3-fpm \
-        php8.3-cli \
-        php8.3-common \
-        php8.3-pgsql \
-        php8.3-zip \
-        php8.3-redis
+    # composer.json declara "php": "^8.3", pero composer.lock —lo que
+    # realmente instala `composer install --no-dev`, no el .json— fija 16
+    # paquetes con "php": ">=8.4" (Symfony v8.0.8 completo y
+    # spatie/laravel-permission 7.2.4, arrastrados por laravel/framework
+    # v13.4.0). Verificado en la VM el 28/08/2026: con PHP 8.3.6 la
+    # instalación falla. Por eso el Dockerfile del proyecto usa
+    # php:8.4-cli, y por eso aquí se instala 8.4 y no 8.3 como decía
+    # docs/auditoria/REQUISITOS.md (que solo había leído composer.json).
+    log "PHP 8.4 (Ubuntu 24.04 solo publica 8.3; se añade el PPA ondrej/php)"
 
-    systemctl enable --now php8.3-fpm
+    if ! apt-cache policy php8.4 2>/dev/null | grep -q 'Candidate:'; then
+        apt-get install -y software-properties-common
+        add-apt-repository -y ppa:ondrej/php
+        apt-get update -y
+    else
+        log "PPA ondrej/php ya disponible, se omite"
+    fi
+
+    log "PHP 8.4 + FPM + extensiones (pdo_pgsql, zip, pcntl, redis, dom, mbstring, curl, bcmath)"
+    # pcntl no es un paquete aparte: viene compilado en php8.4-cli, que es el
+    # único SAPI donde pcntl tiene sentido (no existe bajo FPM/Apache).
+    # php8.4-xml provee ext-dom (requerido por
+    # tijsverkoyen/css-to-inline-styles). mbstring, curl y bcmath son
+    # dependencias habituales de Laravel no listadas en el inventario
+    # original.
+    apt-get install -y \
+        php8.4 \
+        php8.4-fpm \
+        php8.4-cli \
+        php8.4-common \
+        php8.4-pgsql \
+        php8.4-zip \
+        php8.4-redis \
+        php8.4-xml \
+        php8.4-mbstring \
+        php8.4-curl \
+        php8.4-bcmath
+
+    systemctl enable --now php8.4-fpm
 
     log "Verificando extensiones PHP requeridas"
     local ext missing=()
-    for ext in pdo pdo_pgsql zip pcntl redis; do
+    for ext in pdo pdo_pgsql zip pcntl redis dom xml mbstring curl bcmath; do
         php -m | grep -qi "^${ext}\$" || missing+=("${ext}")
     done
     if [[ "${#missing[@]}" -gt 0 ]]; then
         fail "Faltan extensiones PHP: ${missing[*]}. Revisar paquetes disponibles en esta versión de Ubuntu."
     fi
     php -v
+
+    log "Retirando paquetes php8.3-* (evitar dos FPM compitiendo por sockets)"
+    apt-get remove -y 'php8.3*' || true
 }
 
 install_nginx() {

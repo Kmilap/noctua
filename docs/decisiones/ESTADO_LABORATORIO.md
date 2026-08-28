@@ -11,8 +11,14 @@
 2. Instalar Noctúa corriendo sobre **Nginx, sin Docker**
 3. Instalar **Ollama** y el **programa de protección en Python** en esa misma máquina
 
-**Estado: ninguno de los tres puntos está completo.** Lo hecho hasta ahora es
-preparación de Noctúa para que sea desplegable en esa VM.
+**Estado (actualizado 28/08/2026, verificado por SSH contra `noctua-lab`):**
+puntos 1 y 2 completos — la VM existe, y Noctúa corre sobre Nginx sin
+Docker (seis servicios activos: `nginx`, `postgresql`, `redis-server`,
+`php8.4-fpm`, `noctua-horizon`, `noctua-scheduler`). El punto 3 sigue
+pendiente **y con una desviación respecto al plan** — ver
+"Desviaciones respecto a las decisiones de arquitectura" más abajo:
+Ollama corre en WSL, no en una VM `noctua-motor` separada, y el demonio de
+detección todavía no existe.
 
 ---
 
@@ -123,6 +129,49 @@ mostrar *1 servicio, última señal hace 3 meses* a **4/4 activos con latencias
 diferenciadas** (89 ms, 159 ms, 454 ms), uptime heterogéneo y métricas de CPU y
 memoria reales.
 
+### Fase 5 — Despliegue de Noctúa (cerrada, verificada por SSH el 28/08/2026)
+
+Clonado con la deploy key de solo lectura (ver
+[`lab-arquitectura.md`, Decisión 4](lab-arquitectura.md#decisión-4--deploy-key-de-solo-lectura-para-noctua-lab--github)),
+`composer install --no-dev`, `.env` desde el perfil de laboratorio,
+`key:generate`, `migrate --seed`, `npm run build`, permisos de `storage/` y
+`bootstrap/cache`, unidades systemd de Horizon y del scheduler, y
+`config:cache` (`bootstrap/cache/config.php` presente en la VM).
+
+**Verificado:** los seis servicios (`nginx`, `postgresql`, `redis-server`,
+`php8.4-fpm`, `noctua-horizon`, `noctua-scheduler`) están `active`.
+`storage/` y `bootstrap/cache` (y todos sus subdirectorios) son
+`noctua:www-data 2775` de forma consistente. El bloque `server` real de
+Nginx enruta `/api`, `/horizon`, `/up`, `/storage` y `/sanctum` a PHP-FPM
+(`unix:/run/php/php8.4-fpm.sock`) y sirve el resto como SPA con
+`try_files … /index.html` — sin ninguna ruta `/vendor`.
+
+**Hallazgos de la Fase 5** (cada uno verificado directamente en la VM, no
+inferido):
+
+| # | Hallazgo | Impacto |
+|---|---|---|
+| 1 | `composer.lock` exige PHP **8.4**, no 8.3 como decía `docs/auditoria/REQUISITOS.md`. El `.json` pide `^8.3`, pero el lock —lo que `composer install --no-dev` realmente instala— fija 16 paquetes con `"php": ">=8.4"` (Symfony v8.0.8, `spatie/laravel-permission` 7.2.4). | Con PHP 8.3.6 (la versión que documentaba `stack-base`), `composer install --no-dev` falla. `REQUISITOS.md` corregido; `provision-lab.sh` ya instalaba 8.4 correctamente, adelantándose a la documentación. |
+| 2 | A `.env.lab.example` le faltaba `SANCTUM_STATEFUL_DOMAINS` con el origen único de la Decisión 1. En el despliegue real terminó existiendo como línea **vacía** (`SANCTUM_STATEFUL_DOMAINS=`), que es peor que ausente: `env()` no aplica el default de `config/sanctum.php` cuando la clave existe con valor vacío. | Login vía SPA devuelve **419** en vez de autenticar, porque el origen único queda fuera de la lista de dominios stateful. `.env.lab.example` corregido con un placeholder no vacío y la nota de por qué la línea vacía es activamente peor que omitirla. |
+| 3 | La bandera `NOCTUA_CONTAINER_PROVISIONING` **sí está implementada**, al contrario de lo que decía el comentario en `.env.lab.example` ("variable nueva, todavía sin implementar"). Verificado leyendo `config/noctua.php`, `routes/console.php` y `ServiceController.php` en la VM: los tres cortes documentados en la Fase 2 (b) ya estaban activos. | El comentario desactualizado podía llevar a alguien a asumir que la bandera no hacía nada y omitir configurarla en un despliegue nuevo. Comentario corregido en `.env.lab.example`. |
+| 4 | Horizon 5.45 (la versión instalada) ya no publica sus assets bajo `public/vendor/horizon/`. La advertencia de la Decisión 1 sobre enrutar `/vendor` a PHP-FPM **no aplica** a esta versión. | El bloque `server` real de Nginx, verificado por SSH, no tiene ninguna ruta `/vendor` y el panel de Horizon carga con estilos igual — confirma que la advertencia es obsoleta para 5.45, no un bug pendiente. |
+| 5 | `php artisan route:cache` falla: *"Unable to prepare route [register] for serialization. Another route has already been assigned name [register]"* — nombre de ruta duplicado. Reproducido en vivo por SSH. | No se puede cachear rutas en este despliegue. Es un defecto de Noctúa (ya anotado como pendiente conocido en la descripción del snapshot `noctua-desplegada`), **no se corrige**: se documenta y se convive con `route:clear` en vez de `route:cache`. |
+| 6 | El panel `/horizon` devuelve 403. `HorizonServiceProvider::gate()` tiene `Gate::define('viewHorizon', fn ($user) => in_array($user->email, []))` — el array está vacío. Es el scaffolding por defecto de Laravel, no una falla de despliegue. | Nadie puede ver el panel de Horizon hasta añadir al menos un email autorizado al array. Documentado como pendiente conocido, igual que el hallazgo 5. |
+| 7 | La interfaz host-only (`enp0s8`) obtiene `192.168.56.101` por **DHCP** del servidor de VirtualBox (`192.168.56.100`), con arriendo de **10 minutos** (`LIFETIME=10min` en el lease de `systemd-networkd`) — pese a que `infra/README.md` la documenta como si fuera fija. | Todo lo que asume esa IP fija — `nginx server_name` (hoy `_`, no le afecta), `.env` (`APP_URL`/`FRONTEND_URL`/`SANCTUM_STATEFUL_DOMAINS`), `known_hosts` de quien administra por SSH, y el propio `infra/provision-app.sh` — puede romperse si el arrendador reasigna otra IP en un reinicio. Ver evaluación de IP estática más abajo. |
+| 8 | *(Resuelto durante esta misma revisión, no un hallazgo nuevo de código)* Acceso SSH: la clave pública de administración (WSL → VM) tuvo que autorizarse manualmente en `~/.ssh/authorized_keys` de `noctua@noctua-lab` — no venía preautorizada. | Documentado para que quien retome el laboratorio no asuma acceso por clave ya configurado; ver distinción con la deploy key en la Decisión 4. |
+
+**Evaluación de IP estática (hallazgo 7).** `/etc/netplan/50-cloud-init.yaml`
+es `root:root 600` — no se pudo leer su contenido exacto sin `sudo`
+interactivo, así que esto es una recomendación, no una confirmación del
+YAML. `networkctl status enp0s8` confirma que el archivo generado
+(`10-netplan-enp0s8.network`) configura DHCP4 y que el lease activo vence
+en 10 minutos. Dado que `infra/README.md` ya documenta `192.168.56.101`
+como la IP de la VM y toda la Fase 5 (Nginx, `.env`, este mismo documento)
+asume esa dirección, conviene fijarla por estática en el netplan de
+`enp0s8` (o, alternativa más simple, una reserva DHCP por MAC
+`08:00:27:f7:21:1b` en el servidor DHCP de VirtualBox) antes de dejar el
+laboratorio corriendo sin supervisión por periodos largos.
+
 ---
 
 ## 3. Qué falta — la tarea de Fabián propiamente dicha
@@ -145,16 +194,10 @@ PostgreSQL 17, Redis 7, PHP 8.3+ con `pdo_pgsql`/`zip`/`pcntl`/`redis`, PHP-FPM,
 Criterio: una página PHP de prueba responde a través de Nginx, **antes** de meter
 Noctúa. Si falla, se sabe que es la tubería y no Laravel.
 
-### Fase 5 — Despliegue de Noctúa (los dos, en llamada)
-
-- Clonar, `composer install --no-dev`, `npm run build`, `.env` desde el perfil de
-  laboratorio, `key:generate`, `migrate --seed`, `LabSeeder`
-- Permisos de `storage/` y `bootstrap/cache`
-- Unidades systemd: Horizon, scheduler, simulador (con venv y `requirements.txt`)
-- `config:cache` — y documentar que cambiar la bandera exige `config:clear && config:cache`
-
-Criterio: el frontend carga desde la IP de la VM, el login funciona, Horizon
-procesa jobs y el dashboard muestra los tres servicios con métricas.
+> Fase 5 (despliegue de Noctúa) ya está cerrada — ver la sección propia más
+> arriba, en "Qué está hecho". Queda pendiente conectar el simulador
+> (`scripts/simulator.py`) y `LabSeeder` como unidad systemd con su propio
+> venv, que sí seguía sin verificarse al momento de esta revisión.
 
 ### Fase 6 — Ollama y demonio
 
@@ -252,3 +295,37 @@ Y hay dos hallazgos que conviene plantearle como preguntas, no como objeciones:
    web— pero conviene que él lo sepa.
 2. **Hoy no hay Nginx ni PHP-FPM en el proyecto**, corre con `php artisan serve`.
    Migrar no es reconfigurar: es construir cinco piezas desde cero.
+
+---
+
+## 8. Desviaciones respecto a las decisiones de arquitectura
+
+Verificadas por SSH/consola contra `noctua-lab` el 28/08/2026. Cada una se
+aparta de algo ya acordado en `lab-arquitectura.md` o `infra/README.md`: se
+documenta la justificación de por qué existe hoy y qué haría falta para
+cerrarla, no se cierra en silencio.
+
+| # | Desviación | Justificación / por qué existe | Qué hace falta para cerrarla |
+|---|---|---|---|
+| 1 | El snapshot `stack-base` (VirtualBox) describe **PHP 8.3.6-FPM** en su descripción, pero la VM corre **PHP 8.4.24** hoy (`php -v` por SSH). | Fase 5 (hallazgo 1) descubrió que `composer.lock` exige `>=8.4`; PHP se actualizó a 8.4 durante el despliegue de Noctúa, después de tomado el snapshot `stack-base`, sin volver a ese snapshot para corregir su descripción. | Actualizar la descripción de `stack-base` (`VBoxManage snapshot noctua-lab edit stack-base --description ...`) para que diga 8.4, o tomar un nuevo snapshot intermedio "stack-base-php84" que reemplace la referencia desactualizada. No urgente — es metadata del snapshot, no el snapshot en sí, que sigue siendo un punto de retorno válido. |
+| 2 | La VM tiene un adaptador **NAT** con salida real a internet (`enp0s3`, `10.0.2.15`, activo y con ruta por defecto), además del adaptador host-only. La Decisión 3 y sus supuestos dicen que la red host-only "es obligatoria, no opcional" y que ambas VMs deben estar "aisladas de cualquier red con acceso a internet". | `infra/README.md` ya documenta el NAT como deliberado, para descargar paquetes *durante el provisioning*. La desviación real es que el adaptador sigue activo **después** de terminado el provisioning (Fase 5 ya cerrada) y no hay evidencia de que se haya desactivado o restringido tras usarlo. | Decidir explícitamente si el NAT se apaga (`VBoxManage modifyvm noctua-lab --nic1 none` con la VM apagada) una vez el laboratorio queda operativo, o si se acepta permanentemente y se actualiza la Decisión 3/los supuestos de `lab-arquitectura.md` para reflejar que el aislamiento real es "host-only para tráfico de laboratorio, NAT solo para gestión de paquetes" en vez de "sin salida a internet". Mientras el NAT esté arriba, las claves conocidas por diseño del simulador (supuesto de `lab-arquitectura.md`) dependen de que nadie reenvíe un puerto por error en esa interfaz. |
+| 3 | Ollama corre como servicio systemd **en WSL** (el anfitrión de Noel), versión 0.33.0, no en una VM `noctua-motor` separada — de hecho `noctua-motor` no existe (`VBoxManage list vms` solo lista `noctua-lab`). | Documentado ya como Propuesta B en `docs/decisiones/capacidades-anfitrion.md`: VirtualBox no da passthrough de GPU, así que `noctua-motor` como VM invitada mediría CPU (~30 s por respuesta) en vez de GPU (~6 s), lo cual delataría el engaño por latencia. Ejecutar Ollama en el anfitrión con la RTX 5060 evita ese problema, a costa de mover el límite de aislamiento de VM↔VM a anfitrión↔VM. | Esta decisión está marcada en `capacidades-anfitrion.md` como pendiente **conjunta con Camila y Fabián** — afecta el modelo de amenaza y el diagrama de red que ambos acordaron. Mientras no se resuelva formalmente, el objetivo 4 (medir latencia de detección) tiene una **validez comprometida**: el motor de inferencia no compite por CPU con `noctua-lab` (eso se preserva), pero el límite de aislamiento real ya no es el que describe la Decisión 3, y cualquier medición de latencia debe anotar esta salvedad en vez de presentarse como validación de la arquitectura de dos VMs. |
+
+## 9. Incidente — cuelgue en initramfs y restauración desde snapshot
+
+Durante esta revisión, `noctua-lab` se colgó en el prompt de **initramfs**
+tras un apagado forzado (corte, no `shutdown` limpio). Se restauró desde el
+snapshot **`noctua-desplegada`** (VirtualBox), que quedó como snapshot
+actual (`CurrentSnapshotName=noctua-desplegada`) y coincide exactamente con
+el estado post-Fase 5 ya descrito en este documento: seis servicios activos,
+`config:cache` aplicado, y los mismos dos pendientes conocidos (`route:cache`
+por nombre duplicado, Horizon 403 por Gate vacío) que ya trae anotados la
+propia descripción del snapshot.
+
+**Por qué se registra como evidencia positiva, no solo como incidente.** La
+disciplina de tomar snapshot al cierre de cada fase —establecida desde
+`base-limpia` (Fase 3) y `stack-base` (Fase 4)— es lo que hizo que este
+cuelgue costara un `restore` de unos minutos en vez de repetir manualmente
+toda la Fase 5. Sin el snapshot `noctua-desplegada`, recuperar el estado
+habría significado reclonar, reinstalar dependencias, re-migrar y
+reconfigurar systemd desde cero.

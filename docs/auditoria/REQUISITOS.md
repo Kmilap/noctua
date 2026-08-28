@@ -14,7 +14,7 @@ Un único repositorio Git (`git@github.com:Kmilap/noctua.git`) con dos aplicacio
 ## 2. Backend (`noctua-api/`)
 
 - **Framework:** Laravel `^13.0` (`composer.json`); la instancia en ejecución confirma **Laravel 13.4.0** (respuesta JSON de `GET /`).
-- **PHP requerido:** `composer.json` pide `^8.3`. La imagen Docker actual (`Dockerfile` raíz, `FROM php:8.4-cli`) corre **PHP 8.4.24** (confirmado por cabecera `X-Powered-By` en runtime) — compatible con el rango `^8.3`, pero nótese el salto de minor version entre lo declarado y lo que realmente se construye.
+- **PHP requerido:** `composer.json` pide `^8.3`, pero eso no es lo que `composer install --no-dev` instala. **Corrección (Fase 5, verificado en `noctua-lab` el 28/08/2026):** `composer.lock` — el lock es la fuente de verdad de la instalación, no el rango del `.json` — fija 16 paquetes con `"php": ">=8.4"` (Symfony v8.0.8 completo y `spatie/laravel-permission` 7.2.4, arrastrados por `laravel/framework` v13.4.0). Con PHP 8.3.6 instalado en la VM, `composer install --no-dev` falló; con PHP 8.4 (`noctua-lab` corre **PHP 8.4.24**, confirmado con `php -v` por SSH) instala limpio. Por eso `infra/provision-lab.sh` instala PHP 8.4 y no 8.3 como decía esta misma sección hasta ahora — esta línea solo había leído `composer.json`, no `composer.lock`. La imagen Docker (`Dockerfile` raíz, `FROM php:8.4-cli`) ya corría 8.4.24 desde antes, lo cual era la pista que esta sección no había seguido.
 - **Extensiones PHP instaladas en la imagen:** `pdo`, `pdo_pgsql`, `zip`, `pcntl`, `redis` (vía PECL). También incluye el CLI de Docker (`docker-ce-cli`) porque `spatie/docker` lo invoca en runtime.
 - **Paquetes clave:** `laravel/horizon` (colas), `laravel/sanctum` (auth API), `spatie/laravel-permission` (roles/permisos — relevante para Fase 4), `spatie/docker` (orquestación de contenedores).
 - **Gestor de dependencias:** Composer. `composer.lock` presente; `composer validate --no-check-publish` confirma que `composer.json` y el lock están sincronizados.
@@ -77,7 +77,7 @@ NOCTUA_API_URL, NOCTUA_API_KEY_PAGOS, NOCTUA_API_KEY_INVENTARIO, NOCTUA_API_KEY_
 
 ## 6. Requisitos mínimos para una VM limpia (resumen)
 
-- PHP 8.3+ (probado con 8.4.24) + extensiones `pdo_pgsql`, `zip`, `pcntl`, `redis`.
+- PHP **8.4** (no 8.3+: `composer.lock` fija `"php": ">=8.4"` en 16 paquetes — ver sección 2) + extensiones `pdo_pgsql`, `zip`, `pcntl`, `redis`.
 - Composer 2.x.
 - PostgreSQL 17 (o compatible) accesible.
 - Redis 7 (o compatible) accesible.

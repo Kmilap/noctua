@@ -24,3 +24,4 @@ Thumbs.db
 scripts/.venv/
 scripts/simulator.py.bak*
 scripts/simulator.py.before-outage-fix
+node_modules/
