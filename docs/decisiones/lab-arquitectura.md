@@ -95,6 +95,47 @@ privada host-only:
    que EDR, XDR y SIEM: un agente ligero en el equipo monitoreado y un
    motor de análisis centralizado, separado, que ese agente consulta.
 
+## Decisión 4 — Deploy key de solo lectura para `noctua-lab` → GitHub
+
+`noctua-lab` clona y actualiza el repositorio (`git@github.com:Kmilap/noctua.git`)
+con un par de llaves generado en la propia VM (`~/.ssh/id_ed25519_noctua`,
+comentario `noctua-lab deploy key`) y un `~/.ssh/config` que fija
+`IdentityFile ~/.ssh/id_ed25519_noctua` / `IdentitiesOnly yes` para el host
+`github.com`. Esa llave se registra en GitHub como **deploy key de solo
+lectura** del repositorio (sin "Allow write access"), no como una llave
+asociada a una cuenta de usuario con acceso de escritura al resto de
+`Kmilap/noctua` ni a otros repositorios.
+
+Es importante no confundir esta llave con la que usa Noel para administrar
+la VM: la de administración vive en el anfitrión (WSL,
+`~/.ssh/id_ed25519`) y autentica *hacia* `noctua-lab` como usuario `noctua`
+vía `authorized_keys` — es la puerta de entrada del operador. La deploy
+key es la inversa: vive *dentro* de `noctua-lab` y autentica *desde* la VM
+hacia GitHub. Un atacante que comprometa `noctua-lab` obtiene la segunda,
+nunca la primera.
+
+**Justificación.** `noctua-lab` es, por diseño, la máquina que el
+laboratorio expone a ser atacada. Si esa VM clonara el repositorio con una
+llave de escritura —o peor, con las credenciales personales de un
+colaborador—, comprometer la VM le daría a un atacante la capacidad de
+escribir en `Kmilap/noctua`: abrir commits, modificar el propio código de
+Noctúa o del framework de detección, o pivotar hacia otros repositorios
+accesibles con esas credenciales. Una deploy key de solo lectura, scoped a
+un único repositorio, hace que ese compromiso se detenga en "el atacante
+puede leer el código fuente" — que ya es público de todas formas— y no
+llegue a "el atacante puede modificar el repositorio". Es el mismo
+principio de mínimo privilegio que motiva mantener el motor de inferencia
+(Decisión 3) fuera del alcance de un host comprometido.
+
+**Pendiente de verificar.** Que la llave esté generada y en uso (`git
+remote -v` dentro de `noctua-lab` confirma que ya autentica contra
+GitHub) no prueba por sí solo que esté marcada como solo-lectura en
+GitHub — eso se configura en Settings → Deploy keys del repositorio y no
+se pudo confirmar por API en esta revisión (no hay `gh` ni token
+disponible desde este entorno). Falta que quien administre
+`Kmilap/noctua` en GitHub confirme que la casilla "Allow write access"
+está desmarcada para esta llave.
+
 ## Supuestos del laboratorio
 
 Estas no son decisiones de arquitectura sino condiciones bajo las cuales
