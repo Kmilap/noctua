@@ -21,7 +21,11 @@
 
 set -euo pipefail
 
-readonly VM_IP="192.168.56.101"
+# La IP de la VM se detecta de la interfaz host-only (enp0s8). El DHCP de
+# VirtualBox asigna por orden de arranque, asi que cada maquina del equipo
+# recibe una distinta: fijarla aqui rompia el despliegue de cualquiera que
+# no fuera la primera VM creada. Se puede forzar con VM_IP=x.x.x.x ./provision-app.sh
+readonly VM_IP="${VM_IP:-$(ip -4 -o addr show enp0s8 2>/dev/null | awk '{print $4}' | cut -d/ -f1)}"
 readonly APP_ROOT="/var/www/noctua"
 readonly API_DIR="${APP_ROOT}/noctua-api"
 readonly FRONTEND_DIR="${APP_ROOT}/noctua-app"
