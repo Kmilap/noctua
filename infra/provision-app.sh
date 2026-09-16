@@ -109,7 +109,9 @@ setup_env() {
     cp "${API_DIR}/.env.lab.example" "${API_DIR}/.env"
 
     local db_password api_key_pagos api_key_inventario api_key_notificaciones
-    db_password="$(openssl rand -base64 32)"
+    # hex y no base64: los caracteres + / = de base64 se transcriben mal
+    # y costaron dos ciclos de depuracion el 28/08/2026.
+    db_password="$(openssl rand -hex 24)"
     api_key_pagos="lab_pagos_$(openssl rand -hex 8)"
     api_key_inventario="lab_inv_$(openssl rand -hex 8)"
     api_key_notificaciones="lab_notif_$(openssl rand -hex 8)"
@@ -125,7 +127,8 @@ setup_env() {
     chown "${DEPLOY_USER}:${DEPLOY_USER}" "${API_DIR}/.env"
     chmod 640 "${API_DIR}/.env"
 
-    log ".env generado. APP_URL/FRONTEND_URL/SANCTUM_STATEFUL_DOMAINS apuntan a ${VM_IP}."
+    log ".env generado. APP_URL y FRONTEND_URL apuntan a ${VM_IP}."
+    log "SANCTUM_STATEFUL_DOMAINS queda VACIA a proposito: con la IP dentro, el login devuelve 419."
 }
 
 read_env_var() {
