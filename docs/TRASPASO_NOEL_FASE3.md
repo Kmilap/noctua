@@ -179,7 +179,7 @@ grep -c -E '(vmx|svm)' /proc/cpuinfo
 
 ### Paso 3 — Fase 4: stack nativo
 
-PostgreSQL 17, Redis 7, PHP 8.3+ con `pdo_pgsql`, `zip`, `pcntl`, `redis`,
+PostgreSQL 17, Redis 7, PHP 8.4 con `pdo_pgsql`, `zip`, `pcntl`, `redis`,
 PHP-FPM, **Nginx**, Composer, Node 20, Python 3 con `venv`.
 
 **Criterio de aceptación: una página PHP de prueba responde a través de Nginx,

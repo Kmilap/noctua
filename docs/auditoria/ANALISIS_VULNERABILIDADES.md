@@ -165,11 +165,11 @@ X-Content-Type-Options) se corrigen en el bloque `server` de Nginx y la correcci
 a `provision-app.sh`, no aplicada a mano.
 
 **Matización para la fase de validación:** algunas de estas cabeceras cambian el
-comportamiento observable de la aplicación. Como Noctúa es el señuelo que el atacante
-va a sondear, hay que decidir con Fabián y Yamit **cuáles se aplican**: un señuelo con
+comportamiento observable de la aplicación. Como Noctúa es la aplicación objetivo que el atacante
+va a sondear, hay que decidir con Fabián y Yamit **cuáles se aplican**: una aplicación objetivo con
 cabeceras de seguridad perfectas puede resultar menos verosímil que uno con la
 configuración descuidada típica de una aplicación real. La corrección técnica está
-lista; su aplicación es una decisión de diseño del señuelo, no solo de seguridad.
+lista; su aplicación es una decisión de diseño de la aplicación objetivo, no solo de seguridad.
 
 ---
 
@@ -188,7 +188,7 @@ Las debilidades que **se conservan** (SHA-256 sin sal, ruta duplicada) son de es
 no de acceso: ninguna abre una puerta trasera al experimento.
 
 Las de **configuración** (cabeceras, versión del servidor) se corrigen antes de la
-validación, con la salvedad del §7 sobre la verosimilitud del señuelo.
+validación, con la salvedad del §7 sobre la verosimilitud de la aplicación objetivo.
 
 **Se puede proceder al despliegue del framework** una vez aplicadas las correcciones de
 cabeceras. La superficie que el framework atacará —`/login`, los endpoints de la API—
@@ -199,7 +199,7 @@ es la del experimento, no la de una configuración descuidada.
 ## 9. Pendientes derivados de este análisis
 
 1. **Añadir las cabeceras de seguridad a `provision-app.sh`** (§7), tras decidir con
-   Fabián/Yamit cuáles no restan verosimilitud al señuelo.
+   Fabián/Yamit cuáles no restan verosimilitud a la aplicación objetivo.
 2. **`server_tokens off`** en la configuración de Nginx.
 3. **Poblar un segundo equipo en el `LabSeeder`** si se quiere una prueba de IDOR
    concluyente — hoy no se puede demostrar ni descartar del todo por falta de datos,
@@ -229,3 +229,29 @@ es la máquina objetivo del laboratorio y no deben quedar credenciales en disco.
 *Análisis ejecutado el 16 de septiembre de 2026. Todos los códigos HTTP, referencias a
 líneas de código y conteos de alertas están tomados de la ejecución real sobre
 `noctua-lab`.*
+
+---
+
+## 11. Adenda — 20 de octubre de 2026
+
+Esta adenda actualiza el análisis original (16 sep 2026) con dos hechos posteriores. El cuerpo de arriba se conserva como registro de esa fecha; no se reescribe.
+
+### 11.1 Alcance del experimento: CWE-78 primero, CWE-79 después
+
+Después de este análisis, el alcance se precisó a inyección de comandos del SO (CWE-78) como primer caso de uso y XSS (CWE-79) como segundo, en lugar de inyección en general. Verificación directa sobre el código de Noctúa (20 oct 2026):
+
+- **Sin superficie CWE-78 hoy.** Todos los usos de `Symfony\Component\Process\Process` pasan el comando como arreglo (`new Process([...])`), que ejecuta el binario sin shell; los metacaracteres no se interpretan. `ContainerManager` invoca `docker`, inerte en la VM por la ausencia de socket (D-4). No hay ruta HTTP que ejecute comandos del SO con un shell.
+- **Sin superficie CWE-79 hoy.** No hay `dangerouslySetInnerHTML`, `innerHTML` ni `{!! !!}`; React y Blade escapan por defecto.
+
+Consecuencia: la superficie de ataque **no preexiste**, se construye de forma deliberada y aislada en la issue #9 (endpoint de laboratorio activado solo con `APP_ENV=lab`). Esto es coherente con la métrica de extensibilidad del proyecto: añadir CWE-79 sin cambios en el núcleo.
+
+### 11.2 Cabeceras de seguridad (§7): decidir por caso de uso
+
+El §7 deja la aplicación de cabeceras como decisión de diseño. Con CWE-79 en alcance, esa decisión se precisa: una **Content-Security-Policy** estricta bloquea la ejecución del script inyectado y anularía el segundo caso de uso. Por tanto:
+
+- `server_tokens off`, `X-Content-Type-Options` y `X-Frame-Options`: se aplican.
+- **CSP**: se decide al instrumentar CWE-79, con Fabián y Yamid, no antes.
+
+### 11.3 Nota sobre credenciales en el documento
+
+El §4 menciona la contraseña del seeder en texto. El repositorio es privado y son credenciales de laboratorio, pero como regla el proyecto no copia credenciales en documentos. En futuras ediciones se referencia `DatabaseSeeder.php` sin transcribir el valor.
