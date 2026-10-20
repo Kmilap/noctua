@@ -81,3 +81,17 @@ la VM.
 (IP `192.168.56.101` asignada en `enp0s8`, alcanzable) y el disco (37 G
 asignados a `ubuntu-lv`). Es el punto de retorno antes de empezar la
 Fase 4 (stack nativo).
+
+## Red del laboratorio (20 oct 2026)
+
+Red solo-anfitrion exclusiva, para aislar el laboratorio de otras VM del host
+(antes compartia la red .56 con las VM de la electiva y el DHCP reasignaba la IP).
+
+- Adaptador VirtualBox: "VirtualBox Host-Only Ethernet Adapter #2", 192.168.57.1/24, sin DHCP.
+  Crear con permisos de administrador:
+    VBoxManage hostonlyif create
+    VBoxManage hostonlyif ipconfig "<nombre>" --ip 192.168.57.1 --netmask 255.255.255.0
+  Conectar el adaptador 2 de la VM a esa red:
+    VBoxManage modifyvm noctua-lab --hostonlyadapter2 "<nombre>"
+- IP fija de la VM: 192.168.57.10, fijada por netplan con infra/red-lab.sh (idempotente).
+- La VM ya no depende del DHCP: arranque y acceso SSH deterministas en 192.168.57.10.
