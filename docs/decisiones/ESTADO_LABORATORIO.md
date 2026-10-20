@@ -188,7 +188,7 @@ laboratorio corriendo sin supervisión por periodos largos.
 
 ### Fase 4 — Stack nativo (Noel)
 
-PostgreSQL 17, Redis 7, PHP 8.3+ con `pdo_pgsql`/`zip`/`pcntl`/`redis`, PHP-FPM,
+PostgreSQL 17, Redis 7, PHP 8.4 con `pdo_pgsql`/`zip`/`pcntl`/`redis`, PHP-FPM,
 **Nginx**, Composer, Node 20.
 
 Criterio: una página PHP de prueba responde a través de Nginx, **antes** de meter
@@ -329,3 +329,13 @@ cuelgue costara un `restore` de unos minutos en vez de repetir manualmente
 toda la Fase 5. Sin el snapshot `noctua-desplegada`, recuperar el estado
 habría significado reclonar, reinstalar dependencias, re-migrar y
 reconfigurar systemd desde cero.
+
+---
+
+## 10. Actualización — 20 de octubre de 2026
+
+Dos hallazgos de la Fase 5 quedaron superados por trabajo posterior. El texto de arriba se conserva como registro de la fecha original; esta sección fija el estado vigente.
+
+- **Hallazgo 7 (IP por DHCP): resuelto.** La VM ya no depende del DHCP. Se migró a una red solo-anfitrión exclusiva `192.168.57.0/24` sin DHCP, con IP fija `192.168.57.10` por netplan (`infra/red-lab.sh`), fusionado en el PR #53. Causa de la migración: la red `.56` se compartía con otras VM del host y el DHCP reasignaba la dirección, lo que dejó a Noctúa inaccesible al presentarla. El arranque y el acceso SSH ahora son deterministas.
+
+- **Hallazgo 2 (SANCTUM_STATEFUL_DOMAINS): aclaración.** En el despliegue real la variable va **vacía** a propósito, no con un placeholder. Noctúa autentica con tokens Bearer desde `localStorage`, no con sesiones de SPA; en ese modo `SANCTUM_STATEFUL_DOMAINS` no interviene en el login, y meter la IP dentro activa el middleware de sesión que causa el 419. El placeholder que menciona el hallazgo 2 aplicaba al razonamiento stateful; el proyecto quedó en Bearer. `provision-app.sh` ya documenta la línea vacía como decisión (línea con "queda VACIA a proposito").

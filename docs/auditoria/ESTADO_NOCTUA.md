@@ -55,7 +55,7 @@ Estos dos hallazgos surgieron como observación directa durante Fases 1–3, **n
 
 ## 5. Requisitos de despliegue
 
-Resumen ejecutivo (detalle completo en `REQUISITOS.md`): PHP 8.3+ con extensiones `pdo_pgsql`/`zip`/`pcntl`/`redis`, Composer 2.x, PostgreSQL 17, Redis 7, Node 20+/npm para build del frontend, y el conjunto de variables de entorno listado en `REQUISITOS.md` §4. Se detectó una discrepancia de configuración en `scripts/.env` (clave única `NOCTUA_API_KEY` en vez de las tres claves por servicio que pide `scripts/.env.example`) que necesita resolverse antes de dar por completa la migración a "servicios separados".
+Resumen ejecutivo (detalle completo en `REQUISITOS.md`): PHP 8.4 con extensiones `pdo_pgsql`/`zip`/`pcntl`/`redis`, Composer 2.x, PostgreSQL 17, Redis 7, Node 20+/npm para build del frontend, y el conjunto de variables de entorno listado en `REQUISITOS.md` §4. Se detectó una discrepancia de configuración en `scripts/.env` (clave única `NOCTUA_API_KEY` en vez de las tres claves por servicio que pide `scripts/.env.example`) que necesita resolverse antes de dar por completa la migración a "servicios separados".
 
 ## 6. Riesgos abiertos
 
