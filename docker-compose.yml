@@ -32,6 +32,56 @@ services:
     networks:
       - noctua-network
 
+
+  # Contenedor objetivo del laboratorio (issue #9) — superficie CWE-78 aislada.
+  # Deriva de la imagen de `app` pero SIN el socket de Docker, como no-root y
+  # con limites. La ruta vulnerable solo existe aqui (APP_ENV=lab + bandera).
+  # Perfil "lab": no arranca en un `docker compose up` normal.
+  lab-target:
+    profiles: ["lab"]
+    build:
+      context: ./noctua-api
+      dockerfile: ../Dockerfile
+    container_name: noctua-lab-target
+    restart: unless-stopped
+    user: www-data
+    command: >
+      sh -c "php artisan config:clear && php artisan serve --env=lab --host=0.0.0.0 --port=8000"
+    expose:
+      - "8000"
+    volumes:
+      - ./noctua-api:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - APP_ENV=lab
+      - APP_DEBUG=false
+      - UMBRA_LAB_ENABLED=true
+      - UMBRA_DETECTOR_URL=http://detector:8001/analizar
+      - UMBRA_FAIL_MODE=closed
+      - NOCTUA_CONTAINER_PROVISIONING=false
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=noctua
+      - DB_USERNAME=noctua
+      - DB_PASSWORD=noctua_secret
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    mem_limit: 512m
+    pids_limit: 128
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - noctua-network
+
+
   db:
     image: postgres:17-alpine
     container_name: noctua-db
