@@ -49,3 +49,4 @@ Homestead.yaml
 /.nova
 /.vscode
 /.zed
+.env.lab

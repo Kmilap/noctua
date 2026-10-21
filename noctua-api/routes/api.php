@@ -80,3 +80,12 @@ Route::post('/account/resend-reactivation', [\App\Http\Controllers\AccountContro
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::patch('/user/profile', [\App\Http\Controllers\UserProfileController::class, 'update']);
 });
+
+/*
+ | Superficie de laboratorio (issue #9) — CWE-78 deliberado.
+ | La ruta se registra siempre (sobrevive a route:cache). El middleware
+ | lab.deception es la puerta: responde 404 salvo APP_ENV=lab Y
+ | umbra.lab_enabled=true, y aplica el detector (fail-closed).
+ */
+Route::middleware(['lab.deception', 'throttle:30,1'])
+    ->post('/lab/connectivity-check', [\App\Http\Controllers\Lab\ConnectivityCheckController::class, 'check']);

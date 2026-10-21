@@ -2,7 +2,7 @@ FROM php:8.4-cli
 
 # Dependencias del sistema y extensiones PHP
 RUN apt-get update && apt-get install -y \
-    git curl libpq-dev libzip-dev unzip \
+    git curl libpq-dev libzip-dev unzip iputils-ping \
     ca-certificates gnupg \
     && docker-php-ext-install pdo pdo_pgsql zip pcntl \
     && pecl install redis && docker-php-ext-enable redis \
