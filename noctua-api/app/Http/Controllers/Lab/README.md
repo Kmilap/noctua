@@ -21,7 +21,13 @@ como aplicacion objetivo del framework Umbra. **No es codigo de produccion.**
 - Detector no responde -> bloquea (503, fail-closed).
 
 ## Levantar en desarrollo (Docker, WSL)
+Orden obligatorio: primero el framework, que crea la red `arya-lab`
+(umbra ADR-003); `lab-target` se une a ella como red externa y desde ahi
+alcanza solo al detector (`http://detector:8001`), no al senuelo ni a su base.
 ```bash
+# En el repo activedefense-lab/umbra
+infra/scripts/esqueleto.sh arriba
+# En este repo
 cp noctua-api/.env.lab-docker.example noctua-api/.env.lab
 docker compose exec app php artisan key:generate --env=lab   # genera APP_KEY en .env.lab
 docker compose --profile lab up -d --build lab-target
