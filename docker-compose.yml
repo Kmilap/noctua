@@ -78,8 +78,12 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # arya-lab (umbra ADR-003): red del framework donde solo vive el detector.
+    # lab-target la usa para llegar a http://detector:8001. Es externa: la crea
+    # el Compose de activedefense-lab/umbra, que debe estar arriba antes.
     networks:
       - noctua-network
+      - arya-lab
 
 
   db:
@@ -212,3 +216,6 @@ volumes:
 networks:
   noctua-network:
     driver: bridge
+  arya-lab:
+    external: true
+    name: arya-lab
