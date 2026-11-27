@@ -12,12 +12,14 @@ return [
     'lab_enabled' => env('UMBRA_LAB_ENABLED', false),
 
     /*
-     | Detector de Umbra (repo activedefense-lab/umbra). Noctua y Umbra son
-     | despliegues separados que se hablan por HTTP. El middleware consulta
-     | este endpoint antes de permitir la superficie instrumentada.
+     | Punto de entrada unico del framework (umbra ADR-003): POST /interceptar
+     | del detector. Noctua y el framework son despliegues separados que se
+     | hablan por HTTP en la red arya-lab. El tiempo de espera cubre la
+     | generacion del senuelo con Ollama (ADR-003, decision 8); el presupuesto
+     | de latencia se mide en el sprint 6.
      */
-    'detector_url'     => env('UMBRA_DETECTOR_URL', 'http://detector:8001/analizar'),
-    'detector_timeout' => (float) env('UMBRA_DETECTOR_TIMEOUT', 2.0),
+    'detector_url'     => env('UMBRA_DETECTOR_URL', 'http://detector:8001/interceptar'),
+    'detector_timeout' => (float) env('UMBRA_DETECTOR_TIMEOUT', 30.0),
 
     /*
      | Politica ante fallo del detector. "closed" bloquea la superficie

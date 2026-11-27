@@ -60,7 +60,8 @@ services:
       - APP_ENV=lab
       - APP_DEBUG=false
       - UMBRA_LAB_ENABLED=true
-      - UMBRA_DETECTOR_URL=http://detector:8001/analizar
+      - UMBRA_DETECTOR_URL=http://detector:8001/interceptar
+      - UMBRA_DETECTOR_TIMEOUT=30
       - UMBRA_FAIL_MODE=closed
       - NOCTUA_CONTAINER_PROVISIONING=false
       - DB_CONNECTION=pgsql
