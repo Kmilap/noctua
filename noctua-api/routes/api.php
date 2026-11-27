@@ -85,7 +85,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
  | Superficie de laboratorio (issue #9) — CWE-78 deliberado.
  | La ruta se registra siempre (sobrevive a route:cache). El middleware
  | lab.deception es la puerta: responde 404 salvo APP_ENV=lab Y
- | umbra.lab_enabled=true, y aplica el detector (fail-closed).
+ | umbra.lab_enabled=true, y deriva al framework (umbra ADR-003, fallo
+ | cerrado). ':host' es el parametro vigilado.
  */
-Route::middleware(['lab.deception', 'throttle:30,1'])
+Route::middleware(['lab.deception:host', 'throttle:30,1'])
     ->post('/lab/connectivity-check', [\App\Http\Controllers\Lab\ConnectivityCheckController::class, 'check']);
